@@ -1,5 +1,5 @@
 -- =========================
--- GRIFF HUB v9 - AUTO FARM INFINITO (CORREGIDO)
+-- GRIFF HUB v9 - AUTO FARM INFINITO (SIN NOTIFICACIONES DE ERROR)
 -- =========================
 
 -- 💤 ANTI AFK
@@ -19,15 +19,15 @@ local CoreGui = game:GetService("CoreGui")
 local Lighting = game:GetService("Lighting")
 
 -- =========================
--- BLOQUEAR NOTIFICACIONES DE DINERO INSUFICIENTE (VERSIÓN SEGURA)
+-- BLOQUEAR TODAS LAS NOTIFICACIONES DE ERROR
 -- =========================
 
--- Esperar a que exista TextEvent
 local TextEvent = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("TextEvent")
 
--- Función segura para bloquear notificaciones
-local function blockMoneyNotifications()
-    -- Método 1: Intentar desconectar el evento original
+local function blockAllErrorNotifications()
+    if not TextEvent then return end
+    
+    -- Desconectar todas las conexiones existentes del evento
     local success, connections = pcall(function()
         return getconnections(TextEvent.OnClientEvent)
     end)
@@ -38,37 +38,24 @@ local function blockMoneyNotifications()
         end
     end
     
-    -- Método 2: Crear un nuevo evento que filtre
+    -- Crear un nuevo evento que BLOQUEE TODOS LOS ERRORES
     local oldEvent = TextEvent.OnClientEvent
     TextEvent.OnClientEvent = Instance.new("BindableEvent").Event
     
     TextEvent.OnClientEvent:Connect(function(typ, text)
-        -- Bloquear solo errores de dinero
-        if typ == "Error" and text and type(text) == "string" then
-            local lowerText = text:lower()
-            if lowerText:find("insufficient") or 
-               lowerText:find("not enough") or 
-               lowerText:find("don't have") or 
-               lowerText:find("enough money") or
-               lowerText:find("enough gold") or
-               lowerText:find("you need") or
-               lowerText:find("faltan") or
-               lowerText:find("dinero") or
-               lowerText:find("no tienes") then
-                return -- No mostrar
-            end
+        -- BLOQUEAR CUALQUIER MENSAJE DE TIPO "Error"
+        if typ == "Error" then
+            return -- No mostrar NINGÚN mensaje de error
         end
-        -- Mostrar otras notificaciones
+        -- Mostrar mensajes que NO son de error
         if oldEvent then
             oldEvent(typ, text)
         end
     end)
 end
 
--- Ejecutar bloqueo si existe TextEvent
-if TextEvent then
-    pcall(blockMoneyNotifications)
-end
+-- Ejecutar bloqueo
+pcall(blockAllErrorNotifications)
 
 -- VARIABLES GLOBALES
 local farmActive = false
@@ -816,4 +803,4 @@ rejoinBtn.MouseButton1Click:Connect(function()
 	pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
 end)
 
-print("✅ Griff Hub v9 cargado correctamente")
+print("✅ Griff Hub v9 cargado correctamente - Notificaciones de error BLOQUEADAS")
