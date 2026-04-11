@@ -1,5 +1,5 @@
 -- =========================
--- GRIFF HUB v9 - AUTO FARM INFINITO (SIN NOTIFICACIONES DE DINERO)
+-- GRIFF HUB v9 - AUTO FARM INFINITO (CORREGIDO)
 -- =========================
 
 -- 💤 ANTI AFK
@@ -19,58 +19,55 @@ local CoreGui = game:GetService("CoreGui")
 local Lighting = game:GetService("Lighting")
 
 -- =========================
--- BLOQUEAR NOTIFICACIONES DE DINERO INSUFICIENTE
+-- BLOQUEAR NOTIFICACIONES DE DINERO INSUFICIENTE (VERSIÓN SEGURA)
 -- =========================
 
+-- Esperar a que exista TextEvent
 local TextEvent = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("TextEvent")
-if TextEvent then
-    local oldFire = TextEvent.FireServer
-    TextEvent.FireServer = function(...)
-        local args = {...}
-        local text = args[2] or ""
-        if type(text) == "string" and (
-            text:lower():find("insufficient") or
-            text:lower():find("not enough") or
-            text:lower():find("don't have") or
-            text:lower():find("enough money") or
-            text:lower():find("enough gold") or
-            text:lower():find("you need") or
-            text:lower():find("faltan") or
-            text:lower():find("dinero")
-        ) then
-            return -- Bloquear notificación de dinero
-        end
-        if oldFire then
-            oldFire(TextEvent, ...)
-        end
-    end
-end
 
--- También bloquear eventos OnClientEvent de texto
-local TextsGUI = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("TextEvent")
-if TextsGUI and TextsGUI.OnClientEvent then
-    local connections = getconnections and getconnections(TextsGUI.OnClientEvent) or {}
-    for _, conn in ipairs(connections) do
-        local oldFunc = conn.Function
-        if oldFunc then
-            conn:Disable()
+-- Función segura para bloquear notificaciones
+local function blockMoneyNotifications()
+    -- Método 1: Intentar desconectar el evento original
+    local success, connections = pcall(function()
+        return getconnections(TextEvent.OnClientEvent)
+    end)
+    
+    if success and connections then
+        for _, conn in ipairs(connections) do
+            pcall(function() conn:Disable() end)
         end
     end
     
-    TextsGUI.OnClientEvent:Connect(function(typ, text)
-        if typ == "Error" and type(text) == "string" and (
-            text:lower():find("insufficient") or
-            text:lower():find("not enough") or
-            text:lower():find("don't have") or
-            text:lower():find("enough money") or
-            text:lower():find("enough gold") or
-            text:lower():find("you need") or
-            text:lower():find("faltan") or
-            text:lower():find("dinero")
-        ) then
-            return -- No mostrar error de dinero
+    -- Método 2: Crear un nuevo evento que filtre
+    local oldEvent = TextEvent.OnClientEvent
+    TextEvent.OnClientEvent = Instance.new("BindableEvent").Event
+    
+    TextEvent.OnClientEvent:Connect(function(typ, text)
+        -- Bloquear solo errores de dinero
+        if typ == "Error" and text and type(text) == "string" then
+            local lowerText = text:lower()
+            if lowerText:find("insufficient") or 
+               lowerText:find("not enough") or 
+               lowerText:find("don't have") or 
+               lowerText:find("enough money") or
+               lowerText:find("enough gold") or
+               lowerText:find("you need") or
+               lowerText:find("faltan") or
+               lowerText:find("dinero") or
+               lowerText:find("no tienes") then
+                return -- No mostrar
+            end
+        end
+        -- Mostrar otras notificaciones
+        if oldEvent then
+            oldEvent(typ, text)
         end
     end)
+end
+
+-- Ejecutar bloqueo si existe TextEvent
+if TextEvent then
+    pcall(blockMoneyNotifications)
 end
 
 -- VARIABLES GLOBALES
@@ -819,4 +816,4 @@ rejoinBtn.MouseButton1Click:Connect(function()
 	pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
 end)
 
-print("✅ Griff Hub v9 cargado correctamente - Notificaciones de dinero bloqueadas")
+print("✅ Griff Hub v9 cargado correctamente")
