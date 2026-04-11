@@ -1,470 +1,615 @@
--- =========================
--- GRIFF HUB v9 - AUTO FARM INFINITO (DOBLE BOTÓN)
--- =========================
+-- Coloca este script en FuseMachine (LocalScript)
 
--- 💤 ANTI AFK
-local vu = game:GetService("VirtualUser")
-game:GetService("Players").LocalPlayer.Idled:Connect(function()
-	vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-	task.wait(1)
-	vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-end)
-
--- SERVICIOS
-local RS = game:GetService("ReplicatedStorage")
-local WS = game:GetService("Workspace")
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
-local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
--- VARIABLES GLOBALES
-local farmActive = false
-local farm2Active = false
-local currentWaitTime = 16
-local currentWaitTime2 = 11
-local minWaitTime = 5
+local player = Players.LocalPlayer
+local RemoteEvents = ReplicatedStorage.Game.Events
+local Functions = ReplicatedStorage.Game.Functions
 
--- =========================
--- SISTEMA DE GUARDADO
--- =========================
+-- ============================================
+-- 🔥 REFERENCIAS A LA UI
+-- ============================================
 
-local SaveFileName = "GriffHub_SaveData_" .. LocalPlayer.UserId .. ".json"
-local SaveFileName2 = "GriffHub_SaveData2_" .. LocalPlayer.UserId .. ".json"
+local FuseMachine = script.Parent
 
-local function saveState()
-	local data = { farmActive = farmActive }
-	pcall(function()
-		if writefile then
-			writefile(SaveFileName, game:GetService("HttpService"):JSONEncode(data))
-		end
-	end)
-end
+-- Contenedor de slots (Tower)
+local TowerContainer = FuseMachine:FindFirstChild("Tower")
+local Slots = {}
 
-local function saveState2()
-	local data = { farm2Active = farm2Active }
-	pcall(function()
-		if writefile then
-			writefile(SaveFileName2, game:GetService("HttpService"):JSONEncode(data))
-		end
-	end)
-end
-
-local function loadState()
-	local success, content = pcall(function()
-		if readfile then return readfile(SaveFileName) end
-	end)
-	if success and content then
-		local success2, data = pcall(function()
-			return game:GetService("HttpService"):JSONDecode(content)
-		end)
-		if success2 and data then return data.farmActive or false end
-	end
-	return false
-end
-
-local function loadState2()
-	local success, content = pcall(function()
-		if readfile then return readfile(SaveFileName2) end
-	end)
-	if success and content then
-		local success2, data = pcall(function()
-			return game:GetService("HttpService"):JSONDecode(content)
-		end)
-		if success2 and data then return data.farm2Active or false end
-	end
-	return false
-end
-
--- =========================
--- FUNCIÓN VERIFICAR SI EXISTE UNA TORRE
--- =========================
-
-local function towerExists(towerName)
-	local towers = WS:FindFirstChild("Towers")
-	if not towers then return false end
-	
-	for _, tower in pairs(towers:GetChildren()) do
-		local config = tower:FindFirstChild("Config")
-		if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
-			local tName = config:FindFirstChild("TowerName")
-			if tName and tName.Value == towerName then
-				return true
+if TowerContainer then
+	for _, child in ipairs(TowerContainer:GetChildren()) do
+		if child.Name and string.match(child.Name, "^Slot%d+$") then
+			local slotNumber = tonumber(string.match(child.Name, "%d+"))
+			if slotNumber then
+				Slots[slotNumber] = child
+				print("✅ Slot encontrado:", slotNumber)
 			end
 		end
 	end
-	return false
 end
 
--- =========================
--- FUNCIÓN MEJORA UNIDADES
--- =========================
+local sortedSlots = {}
+for i = 1, 4 do
+	sortedSlots[i] = Slots[i]
+	if not Slots[i] then
+		print("⚠️ Slot", i, "no encontrado")
+	end
+end
 
-local function mejorarUnidad(nombreUnidad)
-	local functions = RS:FindFirstChild("Functions")
-	local spawnTower = functions and functions:FindFirstChild("SpawnTower")
-	if not spawnTower then return end
-	
-	local towers = WS:FindFirstChild("Towers")
-	if not towers then return end
-	
-	for _, torre in pairs(towers:GetChildren()) do
-		local config = torre:FindFirstChild("Config")
-		if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
-			local nombre = config:FindFirstChild("TowerName")
-			local upgrade = config:FindFirstChild("Upgrade")
-			if nombre and nombre.Value == nombreUnidad and upgrade and upgrade.Value then
-				pcall(function()
-					spawnTower:InvokeServer(upgrade.Value.Name, torre.PrimaryPart.CFrame, torre)
+-- 🔥 INVENTARIO DENTRO DE FUSEMACHINE (se llama InventoryFuse)
+local InventoryFrame = FuseMachine:FindFirstChild("InventoryFuse")
+print("📦 InventoryFuse encontrado:", InventoryFrame ~= nil)
+
+-- Si no está dentro, buscar en otro lugar
+if not InventoryFrame then
+	local parent = FuseMachine.Parent
+	while parent do
+		InventoryFrame = parent:FindFirstChild("InventoryFuse") or parent:FindFirstChild("Inventory")
+		if InventoryFrame then break end
+		parent = parent.Parent
+	end
+end
+
+-- Obtener componentes del inventario
+local ScrollFrame = nil
+local List = InventoryFrame and InventoryFrame:FindFirstChild("List")
+if List then
+	ScrollFrame = List:FindFirstChild("ScrollingFrame")
+end
+
+print("📋 ScrollFrame encontrado:", ScrollFrame ~= nil)
+
+-- Panel de posibles fusiones
+local FusionsPanel = FuseMachine:FindFirstChild("Fusions")
+local PossibleFusions = FusionsPanel and FusionsPanel:FindFirstChild("PossibleFusions")
+local TitleLabel = FusionsPanel and FusionsPanel:FindFirstChild("Title")
+
+-- Botón de fusión (si existe fuera de los slots)
+local FuseButton = FuseMachine:FindFirstChild("FuseButton") or FuseMachine:FindFirstChild("ADDTOwer")
+
+-- ============================================
+-- 🔥 VARIABLES
+-- ============================================
+
+local selectedTowerIds = {nil, nil, nil, nil}
+local selectedTowerData = {nil, nil, nil, nil}
+local isFusing = false
+local pendingSlot = nil
+local fusionCost = 1000 -- Costo por defecto
+
+-- Colores por rareza
+local RARITY_COLORS = {
+	["Basic"] = Color3.fromRGB(128, 128, 128),
+	["Uncommon"] = Color3.fromRGB(0, 255, 0),
+	["Rare"] = Color3.fromRGB(0, 150, 255),
+	["Epic"] = Color3.fromRGB(163, 53, 238),
+	["Legendary"] = Color3.fromRGB(255, 170, 0),
+	["Mythic"] = Color3.fromRGB(255, 50, 50),
+}
+
+local RARITY_ORDER = {
+	["Basic"] = 1,
+	["Uncommon"] = 2,
+	["Rare"] = 3,
+	["Epic"] = 4,
+	["Legendary"] = 5,
+	["Mythic"] = 6,
+}
+
+-- ============================================
+-- 🔥 FUNCIONES DE UI
+-- ============================================
+
+local function ShowInventory(show)
+	if not InventoryFrame then 
+		print("❌ No se puede mostrar inventario")
+		return 
+	end
+	InventoryFrame.Visible = show
+	print("📂 Inventario visible:", show)
+end
+
+local function UpdateSlotVisual(slotIndex, towerData)
+	local slot = sortedSlots[slotIndex]
+	if not slot then return end
+
+	local towerNameLabel = slot:FindFirstChild("TowerName")
+	local shinyIcon = slot:FindFirstChild("ShinyIcon")
+	local viewportFrame = slot:FindFirstChild("ViewportFrame")
+	local priceLabel = slot:FindFirstChild("price")
+
+	if towerData then
+		if towerNameLabel then
+			towerNameLabel.Text = towerData.name or "???"
+			towerNameLabel.Visible = true
+		end
+
+		if shinyIcon then
+			shinyIcon.Visible = towerData.Shiny == true
+		end
+
+		local rarity = towerData.rarity or "Basic"
+		if viewportFrame then
+			viewportFrame.BackgroundColor3 = RARITY_COLORS[rarity] or Color3.fromRGB(50, 50, 50)
+			viewportFrame.BackgroundTransparency = 0.5
+		end
+
+		if priceLabel then
+			priceLabel.Visible = false
+		end
+
+		slot.BackgroundTransparency = 0.5
+		TweenService:Create(slot, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+	else
+		if towerNameLabel then
+			towerNameLabel.Text = "Empty"
+			towerNameLabel.Visible = true
+		end
+
+		if shinyIcon then
+			shinyIcon.Visible = false
+		end
+
+		if viewportFrame then
+			viewportFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+			viewportFrame.BackgroundTransparency = 0.5
+		end
+
+		if priceLabel then
+			priceLabel.Visible = true
+			priceLabel.Text = "➕"
+			priceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		end
+	end
+end
+
+-- ============================================
+-- 🔥 ACTUALIZAR POSIBLES RESULTADOS
+-- ============================================
+
+local function UpdatePossibleResults()
+	if not PossibleFusions then return end
+
+	for _, child in ipairs(PossibleFusions:GetChildren()) do
+		if child:IsA("Frame") and child.Name ~= "Template" and child.Name ~= "Title" then
+			child:Destroy()
+		end
+	end
+
+	local template = PossibleFusions:FindFirstChild("Template")
+	if not template then return end
+
+	local totalRarity = 0
+	local totalCount = 0
+	local rarityList = {}
+
+	for i = 1, 4 do
+		local towerData = selectedTowerData[i]
+		if towerData and towerData.rarity then
+			local rarityValue = RARITY_ORDER[towerData.rarity] or 1
+			totalRarity = totalRarity + rarityValue
+			totalCount = totalCount + 1
+			table.insert(rarityList, towerData.rarity)
+		end
+	end
+
+	local averageRarity = totalCount > 0 and (totalRarity / totalCount) or 0
+
+	if TitleLabel then
+		if totalCount == 4 then
+			local tier = math.floor(averageRarity)
+			tier = math.clamp(tier, 1, 5)
+			local tierNames = { "⭐ Baja", "⭐⭐ Media-Baja", "⭐⭐⭐ Media", "⭐⭐⭐⭐ Media-Alta", "⭐⭐⭐⭐⭐ Alta" }
+			TitleLabel.Text = "📊 " .. string.format("%.1f", averageRarity) .. " " .. tierNames[tier]
+		else
+			TitleLabel.Text = "📊 " .. totalCount .. "/4 unidades"
+		end
+	end
+
+	if totalCount < 4 then return end
+
+	local tier = math.floor(averageRarity)
+	tier = math.clamp(tier, 1, 5)
+
+	local possibleRewards = {
+		[1] = {{name="Large Speakerman", chance=40}, {name="TV Woman", chance=35}, {name="Large Cameraman", chance=25}},
+		[2] = {{name="Titan Speakerman", chance=35}, {name="Titan Cameraman", chance=35}, {name="Titan TV Man", chance=30}},
+		[3] = {{name="Giant Speakerman", chance=40}, {name="Lucky Speakerman", chance=35}, {name="Titan x2", chance=25}},
+		[4] = {{name="Leprechaun Cameraman", chance=35}, {name="Elf Cameraman", chance=35}, {name="Giant Speakerman x2", chance=30}},
+		[5] = {{name="Leprechaun Cameraman x2", chance=40}, {name="Elf Cameraman x2", chance=35}, {name="Mythic Especial", chance=25}},
+	}
+
+	for _, reward in ipairs(possibleRewards[tier]) do
+		local rewardFrame = template:Clone()
+		rewardFrame.Name = reward.name
+		rewardFrame.Visible = true
+
+		local rewardTitle = rewardFrame:FindFirstChild("Title")
+		if rewardTitle then
+			rewardTitle.Text = reward.name
+		end
+
+		local rewardChance = rewardFrame:FindFirstChild("Chance")
+		if rewardChance then
+			rewardChance.Text = reward.chance .. "%"
+		end
+
+		rewardFrame.Parent = PossibleFusions
+	end
+end
+
+-- ============================================
+-- 🔥 MANEJAR SLOTS
+-- ============================================
+
+local function OpenInventoryForSlot(slotIndex)
+	if isFusing then return end
+	if selectedTowerIds[slotIndex] then return end
+
+	pendingSlot = slotIndex
+	ShowInventory(true)
+
+	local slot = sortedSlots[slotIndex]
+	local priceLabel = slot and slot:FindFirstChild("price")
+	if priceLabel then
+		priceLabel.Text = "🔍"
+		priceLabel.TextColor3 = Color3.fromRGB(255, 255, 100)
+	end
+end
+
+local function AddToSlot(slotIndex, towerData, towerId)
+	if not slotIndex then return false, "Slot inválido" end
+	if towerData.Starter then return false, "❌ Starter no fusionable" end
+	if towerData.Locked then return false, "🔒 Torre bloqueada" end
+	if selectedTowerIds[slotIndex] then return false, "❌ Slot ocupado" end
+
+	selectedTowerIds[slotIndex] = towerId
+	selectedTowerData[slotIndex] = towerData
+	UpdateSlotVisual(slotIndex, towerData)
+	UpdatePossibleResults()
+
+	return true, "✅ Añadida"
+end
+
+local function RemoveFromSlot(slotIndex)
+	if not selectedTowerIds[slotIndex] then return false end
+
+	selectedTowerIds[slotIndex] = nil
+	selectedTowerData[slotIndex] = nil
+	UpdateSlotVisual(slotIndex, nil)
+	UpdatePossibleResults()
+
+	return true
+end
+
+-- ============================================
+-- 🔥 FUSIÓN
+-- ============================================
+
+local function PerformFusion()
+	if isFusing then return end
+
+	for i = 1, 4 do
+		if not selectedTowerIds[i] then
+			local slot = sortedSlots[i]
+			local priceLabel = slot and slot:FindFirstChild("price")
+			if priceLabel then
+				priceLabel.Text = "❌"
+				priceLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+				task.delay(1.5, function()
+					if priceLabel and not selectedTowerIds[i] then
+						priceLabel.Text = "➕"
+						priceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+					end
+				end)
+			end
+			return
+		end
+	end
+
+	isFusing = true
+
+	-- Efecto de carga
+	for i = 1, 4 do
+		local slot = sortedSlots[i]
+		if slot then
+			TweenService:Create(slot, TweenInfo.new(0.3), {BackgroundTransparency = 0.3}):Play()
+		end
+	end
+
+	task.wait(0.5)
+
+	-- Llamar al servidor
+	local success, result = pcall(function()
+		return RemoteEvents.FuseUnits:InvokeServer(selectedTowerIds)
+	end)
+
+	if success and result and result.Success then
+		-- Limpiar slots
+		for i = 1, 4 do
+			selectedTowerIds[i] = nil
+			selectedTowerData[i] = nil
+			UpdateSlotVisual(i, nil)
+		end
+
+		-- Mostrar éxito
+		for i = 1, 4 do
+			local slot = sortedSlots[i]
+			local priceLabel = slot and slot:FindFirstChild("price")
+			if priceLabel then
+				priceLabel.Text = "✓"
+				priceLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+				task.delay(2, function()
+					if priceLabel and not selectedTowerIds[i] then
+						priceLabel.Text = "➕"
+						priceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+					end
+				end)
+			end
+		end
+		
+		-- Mostrar mensaje del resultado
+		if result.Message then
+			print("🎉 " .. result.Message)
+		end
+	else
+		-- Mostrar error
+		local errorMsg = result and result.Message or "Error en la fusión"
+		print("❌ " .. errorMsg)
+		
+		for i = 1, 4 do
+			local slot = sortedSlots[i]
+			local priceLabel = slot and slot:FindFirstChild("price")
+			if priceLabel then
+				priceLabel.Text = "❌"
+				priceLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+				task.delay(2, function()
+					if priceLabel then
+						priceLabel.Text = "➕"
+						priceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+					end
 				end)
 			end
 		end
 	end
+
+	isFusing = false
+	UpdatePossibleResults()
 end
 
--- =========================
--- FUNCIÓN VENDER TODOS LOS BUNNIES
--- =========================
+local function CheckAutoFuse()
+	local allFilled = true
+	for i = 1, 4 do
+		if not selectedTowerIds[i] then
+			allFilled = false
+			break
+		end
+	end
 
-local function venderTodosLosBunnies()
-	local sellTower = RS.Events:FindFirstChild("SellTower") or RS.Functions:FindFirstChild("SellTower")
-	if not sellTower then return 0 end
+	if allFilled and not isFusing then
+		task.wait(0.8)
+		PerformFusion()
+	end
+end
+
+-- ============================================
+-- 🔥 CONECTAR SLOTS
+-- ============================================
+
+for i = 1, 4 do
+	local slot = sortedSlots[i]
+	if slot then
+		slot.Activated:Connect(function()
+			if selectedTowerIds[i] then
+				RemoveFromSlot(i)
+			else
+				OpenInventoryForSlot(i)
+			end
+		end)
+	end
+end
+
+-- ============================================
+-- 🔥 CONECTAR BOTÓN DE FUSIÓN (si existe)
+-- ============================================
+
+if FuseButton then
+	FuseButton.Activated:Connect(PerformFusion)
+end
+
+-- ============================================
+-- 🔥 CONECTAR INVENTARIO
+-- ============================================
+
+local function GetTowerDataFromButton(towerButton)
+	local towerData = {
+		name = towerButton.Name,
+		rarity = towerButton:GetAttribute("Rarity") or "Basic",
+		Shiny = towerButton:FindFirstChild("ShinyIcon") and towerButton.ShinyIcon.Visible or false,
+		Locked = towerButton:FindFirstChild("LockIcon") and towerButton.LockIcon.Visible or false,
+		Starter = (towerButton.LayoutOrder == 999999999),
+		UniqueID = towerButton:GetAttribute("UniqueID") or towerButton:GetAttribute("ID") or towerButton.Name
+	}
+	return towerData
+end
+
+local function AddTowerListener(towerButton)
+	if not towerButton:IsA("ImageButton") then return end
+	if towerButton.Name == "Example" then return end
+	if towerButton:GetAttribute("FusionListener") then return end
 	
-	local towers = WS:FindFirstChild("Towers")
-	if not towers then return 0 end
+	towerButton:SetAttribute("FusionListener", true)
 	
-	local vendidos = 0
-	for _, tower in pairs(towers:GetChildren()) do
-		local config = tower:FindFirstChild("Config")
-		if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
-			local tName = config:FindFirstChild("TowerName")
-			if tName and (tName.Value == "Large Bunny TV Man" or tName.Value == "Bunny TV Man") then
-				pcall(function() sellTower:InvokeServer(tower) end)
-				vendidos = vendidos + 1
+	towerButton.Activated:Connect(function()
+		print("🖱️ Click en torre:", towerButton.Name)
+		
+		if pendingSlot then
+			local towerData = GetTowerDataFromButton(towerButton)
+			local towerId = towerData.UniqueID
+			
+			local success, message = AddToSlot(pendingSlot, towerData, towerId)
+			
+			local originalColor = towerButton.BackgroundColor3
+			if success then
+				print("   ✅ Torre añadida al slot", pendingSlot)
+				towerButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+				task.delay(0.2, function()
+					towerButton.BackgroundColor3 = originalColor
+				end)
+				
+				ShowInventory(false)
+				
+				local slot = sortedSlots[pendingSlot]
+				local priceLabel = slot and slot:FindFirstChild("price")
+				if priceLabel then
+					priceLabel.Text = "✓"
+					priceLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+					task.delay(0.5, function()
+						if priceLabel and selectedTowerIds[pendingSlot] then
+							priceLabel.Visible = false
+						end
+					end)
+				end
+				
+				CheckAutoFuse()
+			else
+				print("   ❌ Error:", message)
+				towerButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+				task.delay(0.2, function()
+					towerButton.BackgroundColor3 = originalColor
+				end)
+				
+				local slot = sortedSlots[pendingSlot]
+				local priceLabel = slot and slot:FindFirstChild("price")
+				if priceLabel then
+					priceLabel.Text = "❌"
+					priceLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+					task.delay(1.5, function()
+						if priceLabel and not selectedTowerIds[pendingSlot] then
+							priceLabel.Text = "➕"
+							priceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+						end
+					end)
+				end
+			end
+			
+			pendingSlot = nil
+		else
+			print("   ⚠️ No hay slot pendiente")
+		end
+	end)
+end
+
+local function ConnectInventory()
+	if not ScrollFrame then
+		print("❌ ScrollFrame no encontrado")
+		return false
+	end
+	
+	print("🔄 Conectando inventario...")
+	local count = 0
+	
+	for _, child in ipairs(ScrollFrame:GetChildren()) do
+		if child:IsA("ImageButton") and child.Name ~= "Example" then
+			AddTowerListener(child)
+			count = count + 1
+		end
+	end
+	
+	print("   ✅ Conectadas", count, "torres")
+	
+	ScrollFrame.ChildAdded:Connect(function(child)
+		task.wait(0.1)
+		if child:IsA("ImageButton") and child.Name ~= "Example" then
+			AddTowerListener(child)
+			print("   ➕ Nueva torre conectada:", child.Name)
+		end
+	end)
+	
+	return true
+end
+
+-- ============================================
+-- 🔥 CERRAR INVENTARIO
+-- ============================================
+
+local CloseButton = InventoryFrame and InventoryFrame:FindFirstChild("CloseButton")
+if CloseButton then
+	CloseButton.Activated:Connect(function()
+		ShowInventory(false)
+		if pendingSlot then
+			local slot = sortedSlots[pendingSlot]
+			local priceLabel = slot and slot:FindFirstChild("price")
+			if priceLabel then
+				priceLabel.Text = "➕"
+				priceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+			end
+			pendingSlot = nil
+		end
+	end)
+end
+
+-- ============================================
+-- 🔥 INICIALIZAR
+-- ============================================
+
+-- Esperar a que el inventario cargue
+local function WaitForInventory()
+	local attempts = 0
+	while attempts < 30 do
+		if ScrollFrame then
+			local hasTowers = false
+			for _, child in ipairs(ScrollFrame:GetChildren()) do
+				if child:IsA("ImageButton") and child.Name ~= "Example" then
+					hasTowers = true
+					break
+				end
+			end
+			
+			if hasTowers then
+				ConnectInventory()
+				return true
 			end
 		end
+		attempts = attempts + 1
+		task.wait(0.5)
+		print("   Esperando torres... (" .. attempts .. "/30)")
 	end
-	return vendidos
-end
-
--- =========================
--- FUNCIÓN SPAWNEAR SPEAKERWOMAN
--- =========================
-
-local function spawnSpeakerwoman()
-	local speakerwomanCFrame = CFrame.new(-2.3337020874023438, 82.93824768066406, 19.79852294921875, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 	
-	if not towerExists("Upgraded Speakerwoman") then
-		local success = pcall(function()
-			RS.Functions.SpawnTower:InvokeServer("Upgraded Speakerwoman", speakerwomanCFrame)
-		end)
-		if success then
-			print("✅ Upgraded Speakerwoman spawneada")
-			return true
-		end
-	else
-		print("⚠️ Upgraded Speakerwoman ya existe")
-	end
+	print("⚠️ No se encontraron torres en el inventario")
 	return false
 end
 
--- =========================
--- GUI
--- =========================
+WaitForInventory()
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "GriffHubV9"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = CoreGui
+-- Inicializar slots
+for i = 1, 4 do
+	UpdateSlotVisual(i, nil)
+end
+UpdatePossibleResults()
 
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 350, 0, 500)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-mainFrame.BorderSizePixel = 0
-mainFrame.Visible = true
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
-
-local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(1, 0, 0, 50)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 20
-title.Text = "🥚 GRIFF HUB v9"
-title.TextXAlignment = Enum.TextXAlignment.Center
-Instance.new("UICorner", title).CornerRadius = UDim.new(0, 12)
-
--- Botón minimizar
-local minimizeBtn = Instance.new("TextButton", mainFrame)
-minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
-minimizeBtn.Position = UDim2.new(1, -35, 0, 10)
-minimizeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-minimizeBtn.TextColor3 = Color3.new(1, 1, 1)
-minimizeBtn.Font = Enum.Font.GothamBold
-minimizeBtn.TextSize = 18
-minimizeBtn.Text = "_"
-Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 8)
-
-local minimized = false
-local originalSize = mainFrame.Size
-
-minimizeBtn.MouseButton1Click:Connect(function()
-	minimized = not minimized
-	if minimized then
-		mainFrame.Size = UDim2.new(0, 350, 0, 50)
-		for _, child in pairs(mainFrame:GetChildren()) do
-			if child ~= title and child ~= minimizeBtn then
-				child.Visible = false
-			end
-		end
-	else
-		mainFrame.Size = originalSize
-		for _, child in pairs(mainFrame:GetChildren()) do
-			if child ~= title and child ~= minimizeBtn then
-				child.Visible = true
-			end
-		end
-	end
-end)
-
-local function crearBoton(parent, y, text, color)
-	local btn = Instance.new("TextButton", parent)
-	btn.Size = UDim2.new(0.9, 0, 0, 45)
-	btn.Position = UDim2.new(0.05, 0, 0, y)
-	btn.BackgroundColor3 = color
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 16
-	btn.Text = text
-	btn.BorderSizePixel = 0
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
-	return btn
+if InventoryFrame then
+	InventoryFrame.Visible = false
 end
 
--- =========================
--- BOTONES
--- =========================
-
-local farm1Active = false
-local farm1Btn = crearBoton(mainFrame, 70, "🌾 ACTIVAR FARM 1", Color3.fromRGB(138, 43, 226))
-local farm1Status = Instance.new("TextLabel", mainFrame)
-farm1Status.Size = UDim2.new(0.9, 0, 0, 25)
-farm1Status.Position = UDim2.new(0.05, 0, 0, 120)
-farm1Status.BackgroundTransparency = 1
-farm1Status.TextColor3 = Color3.fromRGB(255, 255, 0)
-farm1Status.Font = Enum.Font.Gotham
-farm1Status.TextSize = 12
-farm1Status.Text = "⏸️ Farm 1: INACTIVO"
-farm1Status.TextXAlignment = Enum.TextXAlignment.Center
-
-local farm2Active = false
-local farm2Btn = crearBoton(mainFrame, 160, "🌾 ACTIVAR FARM 2", Color3.fromRGB(50, 150, 200))
-local farm2Status = Instance.new("TextLabel", mainFrame)
-farm2Status.Size = UDim2.new(0.9, 0, 0, 25)
-farm2Status.Position = UDim2.new(0.05, 0, 0, 210)
-farm2Status.BackgroundTransparency = 1
-farm2Status.TextColor3 = Color3.fromRGB(255, 255, 0)
-farm2Status.Font = Enum.Font.Gotham
-farm2Status.TextSize = 12
-farm2Status.Text = "⏸️ Farm 2: INACTIVO"
-farm2Status.TextXAlignment = Enum.TextXAlignment.Center
-
-local speakerBtn = crearBoton(mainFrame, 260, "📢 SPAWN SPEAKERWOMAN", Color3.fromRGB(255, 100, 150))
-local speakerStatus = Instance.new("TextLabel", mainFrame)
-speakerStatus.Size = UDim2.new(0.9, 0, 0, 25)
-speakerStatus.Position = UDim2.new(0.05, 0, 0, 310)
-speakerStatus.BackgroundTransparency = 1
-speakerStatus.TextColor3 = Color3.fromRGB(200, 200, 200)
-speakerStatus.Font = Enum.Font.Gotham
-speakerStatus.TextSize = 11
-speakerStatus.Text = "📢 Presiona para spawnear"
-speakerStatus.TextXAlignment = Enum.TextXAlignment.Center
-
-local boostBtn = crearBoton(mainFrame, 350, "⚡ BOOST FPS", Color3.fromRGB(186, 85, 211))
-local rejoinBtn = crearBoton(mainFrame, 410, "🔁 REJOIN", Color3.fromRGB(200, 100, 50))
-
--- =========================
--- FARM 1
--- =========================
-
-local function startFarm1()
-	farm1Active = true
-	farm1Btn.Text = "🌾 DETENER FARM 1"
-	farm1Btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-	farm1Status.Text = "▶️ Farm 1: ACTIVADO"
-	farm1Status.TextColor3 = Color3.fromRGB(0, 255, 0)
-	
-	task.spawn(function()
-		local bunnyCFrame = CFrame.new(-25.735321, 86.0418549, -85.5302887)
-		local titanCFrame = CFrame.new(-47.0388031, 90.3418045, -86.8553925)
-		local waitTime = 16
-		
-		while farm1Active do
-			-- Spawn Bunny
-			pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame) end)
-			
-			for i = 1, waitTime do
-				if not farm1Active then break end
-				task.wait(1)
-			end
-			
-			if waitTime > 5 then
-				waitTime = waitTime - 1
-			end
-		end
-	end)
-	
-	task.spawn(function()
-		while farm1Active do
-			pcall(function() RS.Events.VoteSkip:FireServer() end)
-			task.wait(0.5)
+-- Escuchar eventos del servidor
+if RemoteEvents.FusionFinished then
+	RemoteEvents.FusionFinished.OnClientEvent:Connect(function(success, message, result)
+		if success then
+			print("🎉 " .. message)
+			-- Actualizar inventario después de la fusión
+			pcall(function()
+				Functions.GetInventoryData:InvokeServer()
+			end)
 		end
 	end)
 end
 
-local function stopFarm1()
-	farm1Active = false
-	farm1Btn.Text = "🌾 ACTIVAR FARM 1"
-	farm1Btn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
-	farm1Status.Text = "⏸️ Farm 1: INACTIVO"
-	farm1Status.TextColor3 = Color3.fromRGB(255, 255, 0)
-end
-
--- =========================
--- FARM 2
--- =========================
-
-local function startFarm2()
-	farm2Active = true
-	farm2Btn.Text = "🌾 DETENER FARM 2"
-	farm2Btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-	farm2Status.Text = "▶️ Farm 2: ACTIVADO"
-	farm2Status.TextColor3 = Color3.fromRGB(0, 255, 0)
-	
-	task.spawn(function()
-		local bunnyCFrame = CFrame.new(29.8349686, 84.2882462, -17.7190742)
-		local mechCFrame = CFrame.new(7.5827179, 88.5881958, -28.159481)
-		local titanCFrame = CFrame.new(4.03090668, 89.2408905, -1.34775352)
-		local scientistCFrame = CFrame.new(41.5543137, 82.593399, -44.0053787)
-		
-		-- Spawn Scientists
-		for i = 1, 4 do
-			pcall(function() RS.Functions.SpawnTower:InvokeServer("Scientist Cameraman", scientistCFrame) end)
-			task.wait(0.3)
-		end
-		
-		while farm2Active do
-			-- Fase Bunny (60s)
-			local bunnyWait = 11
-			local startTime = tick()
-			while farm2Active and (tick() - startTime) < 60 do
-				pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame) end)
-				for i = 1, bunnyWait do
-					if not farm2Active then break end
-					task.wait(1)
-				end
-				if bunnyWait > 5 then bunnyWait = bunnyWait - 1 end
-			end
-			
-			if not farm2Active then break end
-			
-			-- Fase Mech (120s)
-			local mechStart = tick()
-			while farm2Active and (tick() - mechStart) < 120 do
-				pcall(function() RS.Functions.SpawnTower:InvokeServer("Mech Cameraman", mechCFrame) end)
-				for i = 1, 3 do
-					if not farm2Active then break end
-					task.wait(1)
-				end
-			end
-			
-			if not farm2Active then break end
-			
-			-- Fase Titan - Vender Bunnies y Spawnear Speakerwoman
-			venderTodosLosBunnies()
-			spawnSpeakerwoman()
-			
-			while farm2Active do
-				pcall(function() RS.Functions.SpawnTower:InvokeServer("Titan Cinemaman", titanCFrame) end)
-				for i = 1, 30 do
-					if not farm2Active then break end
-					task.wait(1)
-				end
-			end
-		end
-	end)
-	
-	task.spawn(function()
-		while farm2Active do
-			pcall(function() RS.Events.VoteSkip:FireServer() end)
-			task.wait(0.5)
-		end
-	end)
-end
-
-local function stopFarm2()
-	farm2Active = false
-	farm2Btn.Text = "🌾 ACTIVAR FARM 2"
-	farm2Btn.BackgroundColor3 = Color3.fromRGB(50, 150, 200)
-	farm2Status.Text = "⏸️ Farm 2: INACTIVO"
-	farm2Status.TextColor3 = Color3.fromRGB(255, 255, 0)
-end
-
--- =========================
--- EVENTOS DE BOTONES
--- =========================
-
-farm1Btn.MouseButton1Click:Connect(function()
-	if farm1Active then
-		stopFarm1()
-	else
-		startFarm1()
-	end
-end)
-
-farm2Btn.MouseButton1Click:Connect(function()
-	if farm2Active then
-		stopFarm2()
-	else
-		startFarm2()
-	end
-end)
-
-speakerBtn.MouseButton1Click:Connect(function()
-	speakerBtn.Text = "⏳ SPAWNEANDO..."
-	task.wait(0.5)
-	if spawnSpeakerwoman() then
-		speakerStatus.Text = "✅ Speakerwoman spawneada correctamente"
-		speakerStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
-	else
-		speakerStatus.Text = "⚠️ Ya existe o hubo un error"
-		speakerStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
-	end
-	task.wait(2)
-	speakerBtn.Text = "📢 SPAWN SPEAKERWOMAN"
-	speakerStatus.Text = "📢 Presiona para spawnear"
-	speakerStatus.TextColor3 = Color3.fromRGB(200, 200, 200)
-end)
-
-boostBtn.MouseButton1Click:Connect(function()
-	boostBtn.Text = "⏳ APLICANDO..."
-	task.wait(0.5)
-	pcall(function()
-		Lighting.GlobalShadows = false
-		Lighting.FogEnd = 1e10
-		settings().Rendering.QualityLevel = 1
-	end)
-	boostBtn.Text = "✅ FPS BOOST"
-	task.wait(2)
-	boostBtn.Text = "⚡ BOOST FPS"
-end)
-
-rejoinBtn.MouseButton1Click:Connect(function()
-	rejoinBtn.Text = "🔄 REJOIN..."
-	task.wait(0.5)
-	pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
-end)
-
-print("✅ Griff Hub v9 cargado correctamente")
+print("=" .. string.rep("=", 40))
+print("🔮 MÁQUINA DE FUSIÓN LISTA")
+print("📌 Click en slot vacío → Selecciona torre")
+print("📌 4 unidades → Fusión automática")
+print("📌 InventoryFuse debe estar dentro de FuseMachine")
+print("=" .. string.rep("=", 40))
