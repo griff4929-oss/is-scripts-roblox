@@ -1,5 +1,5 @@
 -- =========================
--- GRIFF HUB v9 - AUTO FARM INFINITO (DOBLE BOTÓN)
+-- GRIFF HUB v9 - AUTO FARM INFINITO (SIN NOTIFICACIONES DE DINERO)
 -- =========================
 
 -- 💤 ANTI AFK
@@ -17,6 +17,61 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 local Lighting = game:GetService("Lighting")
+
+-- =========================
+-- BLOQUEAR NOTIFICACIONES DE DINERO INSUFICIENTE
+-- =========================
+
+local TextEvent = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("TextEvent")
+if TextEvent then
+    local oldFire = TextEvent.FireServer
+    TextEvent.FireServer = function(...)
+        local args = {...}
+        local text = args[2] or ""
+        if type(text) == "string" and (
+            text:lower():find("insufficient") or
+            text:lower():find("not enough") or
+            text:lower():find("don't have") or
+            text:lower():find("enough money") or
+            text:lower():find("enough gold") or
+            text:lower():find("you need") or
+            text:lower():find("faltan") or
+            text:lower():find("dinero")
+        ) then
+            return -- Bloquear notificación de dinero
+        end
+        if oldFire then
+            oldFire(TextEvent, ...)
+        end
+    end
+end
+
+-- También bloquear eventos OnClientEvent de texto
+local TextsGUI = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("TextEvent")
+if TextsGUI and TextsGUI.OnClientEvent then
+    local connections = getconnections and getconnections(TextsGUI.OnClientEvent) or {}
+    for _, conn in ipairs(connections) do
+        local oldFunc = conn.Function
+        if oldFunc then
+            conn:Disable()
+        end
+    end
+    
+    TextsGUI.OnClientEvent:Connect(function(typ, text)
+        if typ == "Error" and type(text) == "string" and (
+            text:lower():find("insufficient") or
+            text:lower():find("not enough") or
+            text:lower():find("don't have") or
+            text:lower():find("enough money") or
+            text:lower():find("enough gold") or
+            text:lower():find("you need") or
+            text:lower():find("faltan") or
+            text:lower():find("dinero")
+        ) then
+            return -- No mostrar error de dinero
+        end
+    end)
+end
 
 -- VARIABLES GLOBALES
 local farmActive = false
@@ -764,4 +819,4 @@ rejoinBtn.MouseButton1Click:Connect(function()
 	pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
 end)
 
-print("✅ Griff Hub v9 cargado correctamente")
+print("✅ Griff Hub v9 cargado correctamente - Notificaciones de dinero bloqueadas")
