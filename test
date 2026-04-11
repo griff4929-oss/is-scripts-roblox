@@ -1,5 +1,5 @@
 -- =========================
--- GRIFF HUB v9 - AUTO FARM INFINITO (SIN NOTIFICACIONES DE ERROR)
+-- GRIFF HUB v9 - AUTO FARM INFINITO
 -- =========================
 
 -- 💤 ANTI AFK
@@ -19,15 +19,13 @@ local CoreGui = game:GetService("CoreGui")
 local Lighting = game:GetService("Lighting")
 
 -- =========================
--- BLOQUEAR TODAS LAS NOTIFICACIONES DE ERROR
+-- BLOQUEAR NOTIFICACIONES DE ERROR (SOLO ERRORES, NO LAS DEMÁS)
 -- =========================
 
 local TextEvent = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("TextEvent")
 
-local function blockAllErrorNotifications()
-    if not TextEvent then return end
-    
-    -- Desconectar todas las conexiones existentes del evento
+if TextEvent then
+    -- Desconectar conexiones existentes
     local success, connections = pcall(function()
         return getconnections(TextEvent.OnClientEvent)
     end)
@@ -38,24 +36,38 @@ local function blockAllErrorNotifications()
         end
     end
     
-    -- Crear un nuevo evento que BLOQUEE TODOS LOS ERRORES
+    -- Crear nuevo evento que filtra SOLO errores
     local oldEvent = TextEvent.OnClientEvent
     TextEvent.OnClientEvent = Instance.new("BindableEvent").Event
     
     TextEvent.OnClientEvent:Connect(function(typ, text)
-        -- BLOQUEAR CUALQUIER MENSAJE DE TIPO "Error"
+        -- BLOQUEAR SOLO MENSAJES DE ERROR
         if typ == "Error" then
-            return -- No mostrar NINGÚN mensaje de error
+            return -- No mostrar errores
         end
-        -- Mostrar mensajes que NO son de error
+        -- Mostrar mensajes normales (Done, Farm, Heal, Sell)
         if oldEvent then
             oldEvent(typ, text)
         end
     end)
 end
 
--- Ejecutar bloqueo
-pcall(blockAllErrorNotifications)
+-- =========================
+-- MOSTRAR "LOADING GRIFF HUB..." SOLO 1 VEZ
+-- =========================
+
+local function ShowLoadingNotification()
+    local TextsGUI = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("TextEvent")
+    if TextsGUI then
+        pcall(function()
+            -- Enviar notificación de carga
+            TextsGUI:FireServer("Done", "🥚 Loading Griff Hub...")
+        end)
+    end
+end
+
+-- Mostrar loading solo 1 vez
+ShowLoadingNotification()
 
 -- VARIABLES GLOBALES
 local farmActive = false
@@ -555,7 +567,7 @@ local function startFarm1()
 end
 
 -- =========================
--- FARM 2 - CON SPEAKERWOMAN INFINITA EN BUNNY Y UNA EN TITAN
+-- FARM 2
 -- =========================
 
 local function startFarm2()
@@ -610,7 +622,7 @@ local function startFarm2()
 			end
 		end)
 		
-		-- ===== FASE 1: BUNNY + SPEAKERWOMAN INFINITA (60 segundos) =====
+		-- FASE 1: BUNNY + SPEAKERWOMAN (60 segundos)
 		statusLabel2.Text = "🐰 Fase 1: BUNNY + SPEAKERWOMAN"
 		timerLabel2.Text = "⏱️ Fase: BUNNY"
 		timerLabel2.TextColor3 = Color3.fromRGB(255, 200, 0)
@@ -624,7 +636,7 @@ local function startFarm2()
 			local elapsed = tick() - bunnyStartTime
 			local timeLeft = math.max(0, 60 - elapsed)
 			timerLabel2.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
-			spawnTimeLabel2.Text = "🐰 Bunny en " .. currentWaitTime2 .. "s | 📢 Speakerwoman spawneando"
+			spawnTimeLabel2.Text = "🐰 Bunny en " .. currentWaitTime2 .. "s | 📢 Speakerwoman"
 			
 			local waited = 0
 			while farm2Active and waited < currentWaitTime2 and (tick() - bunnyStartTime) < 60 do
@@ -632,16 +644,14 @@ local function startFarm2()
 				waited = waited + 1
 				if (tick() - bunnyStartTime) < 60 then
 					timerLabel2.Text = "⏱️ BUNNY: " .. math.floor(60 - (tick() - bunnyStartTime)) .. "s"
-					spawnTimeLabel2.Text = "🐰 Bunny en " .. (currentWaitTime2 - waited) .. "s | 📢 Speakerwoman spawneando"
+					spawnTimeLabel2.Text = "🐰 Bunny en " .. (currentWaitTime2 - waited) .. "s | 📢 Speakerwoman"
 				end
 			end
 			
 			if farm2Active and (tick() - bunnyStartTime) < 60 then
-				-- Spawnear Bunny
 				pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame2) end)
 				bunnyCount = bunnyCount + 1
 				
-				-- Spawnear Speakerwoman (infinito)
 				pcall(function() RS.Functions.SpawnTower:InvokeServer("Upgraded Speakerwoman", speakerwomanCFrame) end)
 				speakerwomanCount = speakerwomanCount + 1
 				
@@ -656,7 +666,7 @@ local function startFarm2()
 		
 		if not farm2Active then return end
 		
-		-- ===== FASE 2: MECH CADA 3 SEGUNDOS (120 SEGUNDOS) =====
+		-- FASE 2: MECH (120 segundos)
 		statusLabel2.Text = "🤖 Fase 2: MECH (cada 3s) - 120s"
 		timerLabel2.Text = "⏱️ Fase: MECH 3s"
 		timerLabel2.TextColor3 = Color3.fromRGB(100, 255, 150)
@@ -689,11 +699,11 @@ local function startFarm2()
 		
 		if not farm2Active then return end
 		
-		-- ===== FASE 3: TITAN CINEMAMAN - ELIMINAR TODAS LAS SPEAKERWOMAN EXCEPTO UNA =====
+		-- FASE 3: TITAN
 		statusLabel2.Text = "🗑️ Eliminando Bunnies y Speakerwoman extras..."
 		venderTodosLosBunnies()
 		deleteAllSpeakerwomanExceptOne()
-		statusLabel2.Text = "🗑️ Limpieza completada - 1 Speakerwoman restante"
+		statusLabel2.Text = "🗑️ Limpieza completada"
 		task.wait(1)
 		
 		if not farm2Active then return end
