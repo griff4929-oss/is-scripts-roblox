@@ -1,0 +1,1047 @@
+-- =========================
+-- GRIFF HUB v9 - AUTO FARM INFINITO (DOBLE BOTÓN)
+-- MECH CADA 3s (120s) + TITAN CINEMAMAN - VENDE BUNNIES AL INICIO DE FASE 3
+-- NO VENDE SCIENTISTS
+-- =========================
+
+-- =========================
+-- SISTEMA DE WHITELIST (SOLO USUARIOS AUTORIZADOS PUEDEN USAR)
+-- =========================
+
+-- 🔐 TU USER ID (EL CREADOR - SIEMPRE TIENE ACCESO)
+local CREATOR_USER_ID = "8516704781"
+
+-- ARCHIVO DONDE SE GUARDAN LOS USUARIOS AUTORIZADOS
+local WHITELIST_FILE = "GriffHub_Whitelist.json"
+
+-- LISTA DE USUARIOS AUTORIZADOS
+local allowedUsers = {}
+
+-- VARIABLE PARA SABER SI EL USUARIO ACTUAL ESTÁ AUTORIZADO
+local isAuthorized = false
+
+-- =========================
+-- FUNCIONES DE GUARDADO/CARGA
+-- =========================
+
+local function saveWhitelist()
+	local data = { users = allowedUsers }
+	pcall(function()
+		if writefile then
+			writefile(WHITELIST_FILE, game:GetService("HttpService"):JSONEncode(data))
+		end
+	end)
+end
+
+local function loadWhitelist()
+	pcall(function()
+		if readfile then
+			local content = readfile(WHITELIST_FILE)
+			if content and content ~= "" then
+				local data = game:GetService("HttpService"):JSONDecode(content)
+				if data and data.users then
+					allowedUsers = data.users
+				end
+			end
+		end
+	end)
+end
+
+-- =========================
+-- VERIFICAR SI UN USUARIO ESTÁ AUTORIZADO
+-- =========================
+
+local function isUserAllowed(userId)
+	if userId == CREATOR_USER_ID then
+		return true
+	end
+	for _, id in pairs(allowedUsers) do
+		if id == userId then
+			return true
+		end
+	end
+	return false
+end
+
+-- =========================
+-- AGREGAR USUARIO A LA WHITELIST
+-- =========================
+
+local function addUserToWhitelist(userId)
+	if not isUserAllowed(userId) then
+		table.insert(allowedUsers, userId)
+		saveWhitelist()
+		return true
+	end
+	return false
+end
+
+-- =========================
+-- ELIMINAR USUARIO DE LA WHITELIST
+-- =========================
+
+local function removeUserFromWhitelist(userId)
+	for i, id in pairs(allowedUsers) do
+		if id == userId then
+			table.remove(allowedUsers, i)
+			saveWhitelist()
+			return true
+		end
+	end
+	return false
+end
+
+-- CARGAR WHITELIST GUARDADA
+loadWhitelist()
+
+-- VERIFICAR SI EL USUARIO ACTUAL ESTÁ AUTORIZADO
+local currentUserId = tostring(game.Players.LocalPlayer.UserId)
+isAuthorized = isUserAllowed(currentUserId)
+
+-- SI NO ESTÁ AUTORIZADO, MOSTRAR MENSAJE Y NO CARGAR EL HUB
+if not isAuthorized then
+	local CoreGui = game:GetService("CoreGui")
+	local notifyGui = Instance.new("ScreenGui")
+	notifyGui.Name = "NotAuthorized"
+	notifyGui.Parent = CoreGui
+	
+	local frame = Instance.new("Frame", notifyGui)
+	frame.Size = UDim2.new(0, 400, 0, 200)
+	frame.Position = UDim2.new(0.5, -200, 0.5, -100)
+	frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+	
+	local title = Instance.new("TextLabel", frame)
+	title.Size = UDim2.new(1, 0, 0, 50)
+	title.Position = UDim2.new(0, 0, 0, 0)
+	title.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+	title.TextColor3 = Color3.new(1, 1, 1)
+	title.Font = Enum.Font.GothamBold
+	title.TextSize = 18
+	title.Text = "🔒 ACCESO DENEGADO"
+	title.TextXAlignment = Enum.TextXAlignment.Center
+	Instance.new("UICorner", title).CornerRadius = UDim.new(0, 12)
+	
+	local msg = Instance.new("TextLabel", frame)
+	msg.Size = UDim2.new(0.9, 0, 0, 60)
+	msg.Position = UDim2.new(0.05, 0, 0, 60)
+	msg.BackgroundTransparency = 1
+	msg.TextColor3 = Color3.fromRGB(255, 255, 255)
+	msg.Font = Enum.Font.Gotham
+	msg.TextSize = 14
+	msg.Text = "No estás autorizado para usar este hub.\nContacta al creador para obtener acceso.\n\nID: " .. currentUserId
+	msg.TextWrapped = true
+	msg.TextXAlignment = Enum.TextXAlignment.Center
+	
+	local closeBtn = Instance.new("TextButton", frame)
+	closeBtn.Size = UDim2.new(0.5, 0, 0, 40)
+	closeBtn.Position = UDim2.new(0.25, 0, 0, 140)
+	closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+	closeBtn.TextColor3 = Color3.new(1, 1, 1)
+	closeBtn.Font = Enum.Font.GothamBold
+	closeBtn.TextSize = 14
+	closeBtn.Text = "CERRAR"
+	Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
+	
+	closeBtn.MouseButton1Click:Connect(function()
+		notifyGui:Destroy()
+	end)
+	
+	error("Usuario no autorizado: " .. currentUserId)
+	return
+end
+
+print("✅ Usuario autorizado: " .. currentUserId)
+
+-- 💤 ANTI AFK
+local vu = game:GetService("VirtualUser")
+game:GetService("Players").LocalPlayer.Idled:Connect(function()
+	vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+	task.wait(1)
+	vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
+
+-- SERVICIOS
+local RS = game:GetService("ReplicatedStorage")
+local WS = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local Lighting = game:GetService("Lighting")
+
+-- VARIABLES GLOBALES
+local farmActive = false
+local farm2Active = false
+local currentWaitTime = 16
+local currentWaitTime2 = 11
+local minWaitTime = 5
+
+-- =========================
+-- SISTEMA DE GUARDADO DE FARMS
+-- =========================
+
+local SaveFileName = "GriffHub_SaveData_" .. LocalPlayer.UserId .. ".json"
+local SaveFileName2 = "GriffHub_SaveData2_" .. LocalPlayer.UserId .. ".json"
+
+local function saveState()
+	local data = { farmActive = farmActive }
+	pcall(function()
+		if writefile then
+			writefile(SaveFileName, game:GetService("HttpService"):JSONEncode(data))
+		end
+	end)
+end
+
+local function saveState2()
+	local data = { farm2Active = farm2Active }
+	pcall(function()
+		if writefile then
+			writefile(SaveFileName2, game:GetService("HttpService"):JSONEncode(data))
+		end
+	end)
+end
+
+local function loadState()
+	local success, content = pcall(function()
+		if readfile then return readfile(SaveFileName) end
+	end)
+	if success and content then
+		local success2, data = pcall(function()
+			return game:GetService("HttpService"):JSONDecode(content)
+		end)
+		if success2 and data then return data.farmActive or false end
+	end
+	return false
+end
+
+local function loadState2()
+	local success, content = pcall(function()
+		if readfile then return readfile(SaveFileName2) end
+	end)
+	if success and content then
+		local success2, data = pcall(function()
+			return game:GetService("HttpService"):JSONDecode(content)
+		end)
+		if success2 and data then return data.farm2Active or false end
+	end
+	return false
+end
+
+-- =========================
+-- GUI ROOT
+-- =========================
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "GriffHubV9"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = CoreGui
+
+local toggleBtn = Instance.new("TextButton", screenGui)
+toggleBtn.Size = UDim2.new(0, 120, 0, 40)
+toggleBtn.Position = UDim2.new(0, 20, 0.15, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(138,43,226)
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 14
+toggleBtn.Text = "🥚 Griff Hub v9"
+toggleBtn.BorderSizePixel = 0
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 8)
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 400, 0, 560)
+mainFrame.Position = UDim2.new(0.32, 0, 0.15, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = false
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+toggleBtn.MouseButton1Click:Connect(function()
+	mainFrame.Visible = not mainFrame.Visible
+end)
+
+local header = Instance.new("Frame", mainFrame)
+header.Size = UDim2.new(1,0,0,44)
+header.Position = UDim2.new(0,0,0,0)
+header.BackgroundColor3 = Color3.fromRGB(138,43,226)
+header.BorderSizePixel = 0
+Instance.new("UICorner", header).CornerRadius = UDim.new(0,12)
+
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1,-20,1,0)
+title.Position = UDim2.new(0,10,0,0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.Text = "🥚 Griff Hub v9"
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- =========================
+-- TABS Y PÁGINAS
+-- =========================
+
+local tabs = Instance.new("Frame", mainFrame)
+tabs.Size = UDim2.new(1,0,0,40)
+tabs.Position = UDim2.new(0,0,0,48)
+tabs.BackgroundTransparency = 1
+
+local tabLayout = Instance.new("UIListLayout", tabs)
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.Padding = UDim.new(0,8)
+tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local function newTab(name)
+	local b = Instance.new("TextButton", tabs)
+	b.Size = UDim2.new(0.35, 0, 1, 0)
+	b.BackgroundColor3 = Color3.fromRGB(50,50,60)
+	b.TextColor3 = Color3.new(1,1,1)
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 13
+	b.Text = name
+	b.BorderSizePixel = 0
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+	return b
+end
+
+local farmTab = newTab("🌾 AutoFarm")
+local optimizarTab = newTab("⚡ Optimizar")
+local adminTab = newTab("👑 Admin")
+
+local function newPage()
+	local p = Instance.new("ScrollingFrame", mainFrame)
+	p.Size = UDim2.new(1, -14, 1, -110)
+	p.Position = UDim2.new(0, 7, 0, 100)
+	p.BackgroundTransparency = 1
+	p.ScrollBarThickness = 6
+	p.Visible = false
+	return p
+end
+
+local farmPage = newPage()
+local optimizarPage = newPage()
+local adminPage = newPage()
+farmPage.Visible = true
+
+farmTab.MouseButton1Click:Connect(function()
+	farmPage.Visible = true
+	optimizarPage.Visible = false
+	adminPage.Visible = false
+end)
+
+optimizarTab.MouseButton1Click:Connect(function()
+	farmPage.Visible = false
+	optimizarPage.Visible = true
+	adminPage.Visible = false
+end)
+
+adminTab.MouseButton1Click:Connect(function()
+	farmPage.Visible = false
+	optimizarPage.Visible = false
+	adminPage.Visible = true
+end)
+
+local function pageButton(parent, y, text, color, width)
+	local btn = Instance.new("TextButton", parent)
+	btn.Size = UDim2.new(width or 0.92, 0, 0, 44)
+	btn.Position = UDim2.new(0.04, 0, 0, y)
+	btn.BackgroundColor3 = color
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 15
+	btn.Text = text
+	btn.BorderSizePixel = 0
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+	return btn
+end
+
+-- =========================
+-- FUNCIÓN VERIFICAR SI EXISTE UNA TORRE
+-- =========================
+
+local function towerExists(towerName)
+	local towers = WS:FindFirstChild("Towers")
+	if not towers then return false end
+	
+	for _, tower in pairs(towers:GetChildren()) do
+		local config = tower:FindFirstChild("Config")
+		if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
+			local tName = config:FindFirstChild("TowerName")
+			if tName and tName.Value == towerName then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- =========================
+-- FUNCIÓN MEJORA UNIDADES
+-- =========================
+
+local function mejorarUnidad(nombreUnidad)
+	local functions = RS:FindFirstChild("Functions")
+	local spawnTower = functions and functions:FindFirstChild("SpawnTower")
+	if not spawnTower then return end
+	
+	local towers = WS:FindFirstChild("Towers")
+	if not towers then return end
+	
+	for _, torre in pairs(towers:GetChildren()) do
+		local config = torre:FindFirstChild("Config")
+		if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
+			local nombre = config:FindFirstChild("TowerName")
+			local upgrade = config:FindFirstChild("Upgrade")
+			if nombre and nombre.Value == nombreUnidad and upgrade and upgrade.Value then
+				pcall(function()
+					spawnTower:InvokeServer(upgrade.Value.Name, torre.PrimaryPart.CFrame, torre)
+				end)
+			end
+		end
+	end
+end
+
+-- =========================
+-- FUNCIÓN VENDER TODOS LOS BUNNIES
+-- =========================
+
+local function venderTodosLosBunnies()
+	local sellTower = RS.Events:FindFirstChild("SellTower") or RS.Functions:FindFirstChild("SellTower")
+	if not sellTower then return 0 end
+	
+	local towers = WS:FindFirstChild("Towers")
+	if not towers then return 0 end
+	
+	local vendidos = 0
+	for _, tower in pairs(towers:GetChildren()) do
+		local config = tower:FindFirstChild("Config")
+		if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
+			local tName = config:FindFirstChild("TowerName")
+			if tName and (tName.Value == "Large Bunny TV Man" or tName.Value == "Bunny TV Man") then
+				pcall(function() sellTower:InvokeServer(tower) end)
+				vendidos = vendidos + 1
+			end
+		end
+	end
+	return vendidos
+end
+
+-- =========================
+-- FUNCIÓN SPAWNEAR SPEAKERWOMAN (SOLO SI NO EXISTE)
+-- =========================
+
+local function spawnSpeakerwomanIfNotExists()
+	local speakerwomanCFrame = CFrame.new(-2.3337020874023438, 82.93824768066406, 19.79852294921875, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+	
+	if not towerExists("Upgraded Speakerwoman") then
+		pcall(function()
+			RS.Functions.SpawnTower:InvokeServer("Upgraded Speakerwoman", speakerwomanCFrame)
+			print("📢 Upgraded Speakerwoman spawneada")
+			return true
+		end)
+	else
+		print("📢 Upgraded Speakerwoman ya existe, no se spawnea")
+		return false
+	end
+end
+
+-- =========================
+-- 🌾 AUTOFARM PAGE - BOTÓN 1
+-- =========================
+
+local wasActive = loadState()
+local wasActive2 = loadState2()
+
+local farmBtn
+if wasActive then
+	farmBtn = pageButton(farmPage, 10, "🌾 Detener Farm 1", Color3.fromRGB(200, 50, 50))
+else
+	farmBtn = pageButton(farmPage, 10, "🌾 Activar Farm 1", Color3.fromRGB(138, 43, 226))
+end
+
+local statusLabel1 = Instance.new("TextLabel", farmPage)
+statusLabel1.Size = UDim2.new(0.92, 0, 0, 25)
+statusLabel1.Position = UDim2.new(0.04, 0, 0, 60)
+statusLabel1.BackgroundTransparency = 1
+statusLabel1.TextColor3 = wasActive and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
+statusLabel1.Font = Enum.Font.Gotham
+statusLabel1.TextSize = 11
+statusLabel1.Text = wasActive and "▶️ Farm 1 Activado" or "⏸️ Farm 1 Inactivo"
+statusLabel1.TextXAlignment = Enum.TextXAlignment.Center
+
+local timerLabel1 = Instance.new("TextLabel", farmPage)
+timerLabel1.Size = UDim2.new(0.92, 0, 0, 25)
+timerLabel1.Position = UDim2.new(0.04, 0, 0, 85)
+timerLabel1.BackgroundTransparency = 1
+timerLabel1.TextColor3 = Color3.fromRGB(255, 200, 0)
+timerLabel1.Font = Enum.Font.Gotham
+timerLabel1.TextSize = 11
+timerLabel1.Text = "⏱️ Farm 1: Inactivo"
+timerLabel1.TextXAlignment = Enum.TextXAlignment.Center
+
+local spawnTimeLabel1 = Instance.new("TextLabel", farmPage)
+spawnTimeLabel1.Size = UDim2.new(0.92, 0, 0, 25)
+spawnTimeLabel1.Position = UDim2.new(0.04, 0, 0, 110)
+spawnTimeLabel1.BackgroundTransparency = 1
+spawnTimeLabel1.TextColor3 = Color3.fromRGB(180, 180, 255)
+spawnTimeLabel1.Font = Enum.Font.Gotham
+spawnTimeLabel1.TextSize = 11
+spawnTimeLabel1.Text = "🐰 Bunny: 16s"
+spawnTimeLabel1.TextXAlignment = Enum.TextXAlignment.Center
+
+-- =========================
+-- 🌾 AUTOFARM PAGE - BOTÓN 2
+-- =========================
+
+local farmBtn2
+if wasActive2 then
+	farmBtn2 = pageButton(farmPage, 145, "🌾 Detener Farm 2", Color3.fromRGB(200, 50, 50))
+else
+	farmBtn2 = pageButton(farmPage, 145, "🌾 Activar Farm 2", Color3.fromRGB(50, 150, 200))
+end
+
+local statusLabel2 = Instance.new("TextLabel", farmPage)
+statusLabel2.Size = UDim2.new(0.92, 0, 0, 25)
+statusLabel2.Position = UDim2.new(0.04, 0, 0, 195)
+statusLabel2.BackgroundTransparency = 1
+statusLabel2.TextColor3 = wasActive2 and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
+statusLabel2.Font = Enum.Font.Gotham
+statusLabel2.TextSize = 11
+statusLabel2.Text = wasActive2 and "▶️ Farm 2 Activado" or "⏸️ Farm 2 Inactivo"
+statusLabel2.TextXAlignment = Enum.TextXAlignment.Center
+
+local timerLabel2 = Instance.new("TextLabel", farmPage)
+timerLabel2.Size = UDim2.new(0.92, 0, 0, 25)
+timerLabel2.Position = UDim2.new(0.04, 0, 0, 220)
+timerLabel2.BackgroundTransparency = 1
+timerLabel2.TextColor3 = Color3.fromRGB(255, 200, 0)
+timerLabel2.Font = Enum.Font.Gotham
+timerLabel2.TextSize = 11
+timerLabel2.Text = "⏱️ Farm 2: Inactivo"
+timerLabel2.TextXAlignment = Enum.TextXAlignment.Center
+
+local spawnTimeLabel2 = Instance.new("TextLabel", farmPage)
+spawnTimeLabel2.Size = UDim2.new(0.92, 0, 0, 25)
+spawnTimeLabel2.Position = UDim2.new(0.04, 0, 0, 245)
+spawnTimeLabel2.BackgroundTransparency = 1
+spawnTimeLabel2.TextColor3 = Color3.fromRGB(180, 180, 255)
+spawnTimeLabel2.Font = Enum.Font.Gotham
+spawnTimeLabel2.TextSize = 11
+spawnTimeLabel2.Text = "🐰 Bunny: 11s"
+spawnTimeLabel2.TextXAlignment = Enum.TextXAlignment.Center
+
+-- =========================
+-- FARM 1
+-- =========================
+
+local function startFarm1()
+	farmActive = true
+	
+	task.spawn(function()
+		local char = LocalPlayer.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(21.937172, 5.037024, -161.283066))
+			task.wait(0.1)
+			pcall(function() RS.Events.StartElevator:FireServer("Elevator14") end)
+			statusLabel1.Text = "✅ TP Completado"
+			task.wait(2)
+		end
+		
+		if not farmActive then return end
+		
+		statusLabel1.Text = "▶️ Farm 1 Activado"
+		statusLabel1.TextColor3 = Color3.fromRGB(0, 255, 0)
+		
+		local bunnyCFrame = CFrame.new(-25.735321, 86.0418549, -85.5302887, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		local titanCFrame = CFrame.new(-47.0388031, 90.3418045, -86.8553925, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		
+		task.spawn(function()
+			while farmActive do
+				pcall(function() RS.Events.VoteSkip:FireServer() end)
+				task.wait(0.05)
+			end
+		end)
+		
+		task.spawn(function()
+			while farmActive do
+				mejorarUnidad("Large Bunny TV Man")
+				mejorarUnidad("Upgraded Titan Cameraman")
+				task.wait(0.3)
+			end
+		end)
+		
+		statusLabel1.Text = "🐰 Farm 1 - BUNNY"
+		timerLabel1.Text = "⏱️ Fase: BUNNY"
+		timerLabel1.TextColor3 = Color3.fromRGB(255, 200, 0)
+		
+		currentWaitTime = 16
+		local bunnyStartTime = tick()
+		local bunnyCount = 0
+		
+		while farmActive and (tick() - bunnyStartTime) < 60 do
+			local elapsed = tick() - bunnyStartTime
+			local timeLeft = math.max(0, 60 - elapsed)
+			timerLabel1.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
+			spawnTimeLabel1.Text = "🐰 Próximo Bunny en " .. currentWaitTime .. "s"
+			
+			local waited = 0
+			while farmActive and waited < currentWaitTime and (tick() - bunnyStartTime) < 60 do
+				task.wait(1)
+				waited = waited + 1
+				elapsed = tick() - bunnyStartTime
+				if (tick() - bunnyStartTime) < 60 then
+					local timeLeft = math.max(0, 60 - elapsed)
+					timerLabel1.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
+					spawnTimeLabel1.Text = "🐰 Próximo Bunny en " .. (currentWaitTime - waited) .. "s"
+				end
+			end
+			
+			if farmActive and (tick() - bunnyStartTime) < 60 then
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame) end)
+				bunnyCount = bunnyCount + 1
+				statusLabel1.Text = "🐰 Farm 1 Bunny #" .. bunnyCount
+				if currentWaitTime > minWaitTime then
+					currentWaitTime = math.max(minWaitTime, currentWaitTime - 1)
+				end
+				spawnTimeLabel1.Text = "🐰 Bunny: " .. currentWaitTime .. "s"
+			end
+		end
+		
+		if not farmActive then return end
+		
+		statusLabel1.Text = "🏆 Farm 1 - TITAN"
+		timerLabel1.Text = "⏱️ Fase: TITAN"
+		timerLabel1.TextColor3 = Color3.fromRGB(255, 100, 100)
+		
+		currentWaitTime = 16
+		local titanCount = 0
+		
+		while farmActive do
+			spawnTimeLabel1.Text = "🏆 Próximo Titan en " .. currentWaitTime .. "s"
+			
+			local waited = 0
+			while farmActive and waited < currentWaitTime do
+				task.wait(1)
+				waited = waited + 1
+				timerLabel1.Text = "⏱️ TITAN: INFINITO"
+				spawnTimeLabel1.Text = "🏆 Próximo Titan en " .. (currentWaitTime - waited) .. "s"
+			end
+			
+			if farmActive then
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Upgraded Titan Cameraman", titanCFrame) end)
+				titanCount = titanCount + 1
+				statusLabel1.Text = "🏆 Farm 1 Titan #" .. titanCount
+				if currentWaitTime > minWaitTime then
+					currentWaitTime = math.max(minWaitTime, currentWaitTime - 1)
+				end
+				spawnTimeLabel1.Text = "🏆 Titan: " .. currentWaitTime .. "s"
+			end
+		end
+	end)
+end
+
+-- =========================
+-- FARM 2 - VENDE BUNNIES AL INICIO DE LA FASE 3 (TITAN) + SPAWN SPEAKERWOMAN
+-- =========================
+
+local function startFarm2()
+	farm2Active = true
+	
+	task.spawn(function()
+		local char = LocalPlayer.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(-116.770126, 6.841276, -175.873993))
+			task.wait(0.1)
+			pcall(function() RS.Events.StartElevator:FireServer("Elevator19") end)
+			statusLabel2.Text = "✅ TP Completado"
+			task.wait(2)
+		end
+		
+		if not farm2Active then return end
+		
+		statusLabel2.Text = "▶️ Farm 2 Activado"
+		statusLabel2.TextColor3 = Color3.fromRGB(0, 255, 0)
+		
+		local scientistCFrame = CFrame.new(41.5543137, 82.593399, -44.0053787, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		local bunnyCFrame2 = CFrame.new(29.8349686, 84.2882462, -17.7190742, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		local mechCFrame2 = CFrame.new(7.5827179, 88.5881958, -28.159481, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		local titanCFrame2 = CFrame.new(4.03090668, 89.2408905, -1.34775352, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		
+		statusLabel2.Text = "🔬 Colocando 4 Scientists..."
+		for i = 1, 4 do
+			pcall(function() RS.Functions.SpawnTower:InvokeServer("Scientist Cameraman", scientistCFrame) end)
+			statusLabel2.Text = "🔬 Scientist " .. i .. "/4"
+			task.wait(0.3)
+		end
+		
+		task.spawn(function()
+			while farm2Active do
+				pcall(function() RS.Events.VoteSkip:FireServer() end)
+				task.wait(0.05)
+			end
+		end)
+		
+		task.spawn(function()
+			while farm2Active do
+				mejorarUnidad("Large Bunny TV Man")
+				mejorarUnidad("Scientist Cameraman")
+				mejorarUnidad("Mech Cameraman")
+				mejorarUnidad("Titan Cinemaman")
+				task.wait(0.3)
+			end
+		end)
+		
+		statusLabel2.Text = "🐰 Fase 1: BUNNY"
+		timerLabel2.Text = "⏱️ Fase: BUNNY"
+		timerLabel2.TextColor3 = Color3.fromRGB(255, 200, 0)
+		
+		currentWaitTime2 = 11
+		local bunnyStartTime = tick()
+		local bunnyCount = 0
+		
+		while farm2Active and (tick() - bunnyStartTime) < 60 do
+			local elapsed = tick() - bunnyStartTime
+			local timeLeft = math.max(0, 60 - elapsed)
+			timerLabel2.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
+			spawnTimeLabel2.Text = "🐰 Bunny en " .. currentWaitTime2 .. "s"
+			
+			local waited = 0
+			while farm2Active and waited < currentWaitTime2 and (tick() - bunnyStartTime) < 60 do
+				task.wait(1)
+				waited = waited + 1
+				if (tick() - bunnyStartTime) < 60 then
+					timerLabel2.Text = "⏱️ BUNNY: " .. math.floor(60 - (tick() - bunnyStartTime)) .. "s"
+					spawnTimeLabel2.Text = "🐰 Bunny en " .. (currentWaitTime2 - waited) .. "s"
+				end
+			end
+			
+			if farm2Active and (tick() - bunnyStartTime) < 60 then
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame2) end)
+				bunnyCount = bunnyCount + 1
+				statusLabel2.Text = "🐰 Bunny #" .. bunnyCount
+				if currentWaitTime2 > minWaitTime then
+					currentWaitTime2 = math.max(minWaitTime, currentWaitTime2 - 1)
+				end
+				spawnTimeLabel2.Text = "🐰 Bunny: " .. currentWaitTime2 .. "s"
+			end
+		end
+		
+		if not farm2Active then return end
+		
+		statusLabel2.Text = "🤖 Fase 2: MECH (cada 3s) - 120s"
+		timerLabel2.Text = "⏱️ Fase: MECH 3s"
+		timerLabel2.TextColor3 = Color3.fromRGB(100, 255, 150)
+		
+		local mechStartTime = tick()
+		local mechCount = 0
+		
+		while farm2Active and (tick() - mechStartTime) < 120 do
+			local elapsed = tick() - mechStartTime
+			local timeLeft = math.max(0, 120 - elapsed)
+			timerLabel2.Text = "⏱️ MECH: " .. math.floor(timeLeft) .. "s"
+			spawnTimeLabel2.Text = "🤖 Mech en 3s"
+			
+			local waited = 0
+			while farm2Active and waited < 3 and (tick() - mechStartTime) < 120 do
+				task.wait(1)
+				waited = waited + 1
+				if (tick() - mechStartTime) < 120 then
+					timerLabel2.Text = "⏱️ MECH: " .. math.floor(120 - (tick() - mechStartTime)) .. "s"
+					spawnTimeLabel2.Text = "🤖 Mech en " .. (3 - waited) .. "s"
+				end
+			end
+			
+			if farm2Active and (tick() - mechStartTime) < 120 then
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Mech Cameraman", mechCFrame2) end)
+				mechCount = mechCount + 1
+				statusLabel2.Text = "🤖 Mech #" .. mechCount
+			end
+		end
+		
+		if not farm2Active then return end
+		
+		-- ===== FASE 3: TITAN CINEMAMAN - PRIMERO VENDER BUNNIES Y SPAWNEAR SPEAKERWOMAN =====
+		statusLabel2.Text = "🗑️ Eliminando Bunnies antes del Titan..."
+		local vendidos = venderTodosLosBunnies()
+		statusLabel2.Text = "🗑️ " .. vendidos .. " Bunnies eliminados"
+		task.wait(1)
+		
+		if not farm2Active then return end
+		
+		-- SPAWNEAR SPEAKERWOMAN SOLO SI NO EXISTE
+		statusLabel2.Text = "📢 Verificando Upgraded Speakerwoman..."
+		spawnSpeakerwomanIfNotExists()
+		task.wait(1)
+		
+		if not farm2Active then return end
+		
+		statusLabel2.Text = "🎬 Fase 3: TITAN CINEMAMAN"
+		timerLabel2.Text = "⏱️ Fase: TITAN"
+		timerLabel2.TextColor3 = Color3.fromRGB(255, 150, 100)
+		
+		local titanCount = 0
+		
+		while farm2Active do
+			spawnTimeLabel2.Text = "🎬 Titan en 30s"
+			timerLabel2.Text = "⏱️ TITAN: INFINITO"
+			
+			local waited = 0
+			while farm2Active and waited < 30 do
+				task.wait(1)
+				waited = waited + 1
+				spawnTimeLabel2.Text = "🎬 Titan en " .. (30 - waited) .. "s"
+			end
+			
+			if farm2Active then
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Titan Cinemaman", titanCFrame2) end)
+				titanCount = titanCount + 1
+				statusLabel2.Text = "🎬 Titan #" .. titanCount
+			end
+		end
+	end)
+end
+
+-- =========================
+-- BOTONES AUTOFARM
+-- =========================
+
+farmBtn.MouseButton1Click:Connect(function()
+	farmActive = not farmActive
+	saveState()
+	if farmActive then
+		farmBtn.Text = "🌾 Detener Farm 1"
+		farmBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+		startFarm1()
+	else
+		farmBtn.Text = "🌾 Activar Farm 1"
+		farmBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+		statusLabel1.Text = "⏸️ Farm 1 Inactivo"
+		statusLabel1.TextColor3 = Color3.fromRGB(255, 255, 0)
+		timerLabel1.Text = "⏱️ Farm 1: Inactivo"
+		spawnTimeLabel1.Text = "🐰 Bunny: 16s"
+	end
+end)
+
+farmBtn2.MouseButton1Click:Connect(function()
+	farm2Active = not farm2Active
+	saveState2()
+	if farm2Active then
+		farmBtn2.Text = "🌾 Detener Farm 2"
+		farmBtn2.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+		startFarm2()
+	else
+		farmBtn2.Text = "🌾 Activar Farm 2"
+		farmBtn2.BackgroundColor3 = Color3.fromRGB(50, 150, 200)
+		statusLabel2.Text = "⏸️ Farm 2 Inactivo"
+		statusLabel2.TextColor3 = Color3.fromRGB(255, 255, 0)
+		timerLabel2.Text = "⏱️ Farm 2: Inactivo"
+		spawnTimeLabel2.Text = "🐰 Bunny: 11s"
+	end
+end)
+
+-- =========================
+-- AUTO-INICIO
+-- =========================
+
+if wasActive then
+	farmActive = true
+	task.spawn(function() task.wait(1); startFarm1() end)
+end
+
+if wasActive2 then
+	farm2Active = true
+	task.spawn(function() task.wait(1.5); startFarm2() end)
+end
+
+-- =========================
+-- OPTIMIZAR PAGE
+-- =========================
+
+local boostBtn = pageButton(optimizarPage, 10, "⚡ Boost FPS", Color3.fromRGB(186, 85, 211))
+local rejoinBtn = pageButton(optimizarPage, 70, "🔁 Rejoin", Color3.fromRGB(138, 43, 226))
+
+boostBtn.MouseButton1Click:Connect(function()
+	boostBtn.Text = "⏳ Aplicando..."
+	task.wait(0.5)
+	pcall(function()
+		Lighting.GlobalShadows = false
+		Lighting.FogEnd = 1e10
+		Lighting.Brightness = 1
+		settings().Rendering.QualityLevel = 1
+	end)
+	boostBtn.Text = "✅ FPS Boost"
+	task.wait(2)
+	boostBtn.Text = "⚡ Boost FPS"
+end)
+
+rejoinBtn.MouseButton1Click:Connect(function()
+	rejoinBtn.Text = "🔄 Rejoin..."
+	task.wait(0.5)
+	pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
+end)
+
+-- =========================
+-- 👑 ADMIN PAGE - GESTIÓN DE WHITELIST
+-- =========================
+
+local adminTitle = Instance.new("TextLabel", adminPage)
+adminTitle.Size = UDim2.new(0.92, 0, 0, 30)
+adminTitle.Position = UDim2.new(0.04, 0, 0, 10)
+adminTitle.BackgroundTransparency = 1
+adminTitle.TextColor3 = Color3.fromRGB(255, 200, 100)
+adminTitle.Font = Enum.Font.GothamBold
+adminTitle.TextSize = 16
+adminTitle.Text = "👑 PANEL DE ADMINISTRACIÓN"
+adminTitle.TextXAlignment = Enum.TextXAlignment.Center
+
+local creatorLabel = Instance.new("TextLabel", adminPage)
+creatorLabel.Size = UDim2.new(0.92, 0, 0, 25)
+creatorLabel.Position = UDim2.new(0.04, 0, 0, 45)
+creatorLabel.BackgroundTransparency = 1
+creatorLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+creatorLabel.Font = Enum.Font.GothamBold
+creatorLabel.TextSize = 12
+creatorLabel.Text = "👑 TU ID (CREADOR): " .. CREATOR_USER_ID
+creatorLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local addLabel = Instance.new("TextLabel", adminPage)
+addLabel.Size = UDim2.new(0.92, 0, 0, 20)
+addLabel.Position = UDim2.new(0.04, 0, 0, 80)
+addLabel.BackgroundTransparency = 1
+addLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+addLabel.Font = Enum.Font.Gotham
+addLabel.TextSize = 11
+addLabel.Text = "ID del usuario a AGREGAR:"
+addLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local addInput = Instance.new("TextBox", adminPage)
+addInput.Size = UDim2.new(0.92, 0, 0, 35)
+addInput.Position = UDim2.new(0.04, 0, 0, 105)
+addInput.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+addInput.TextColor3 = Color3.new(1, 1, 1)
+addInput.Font = Enum.Font.Gotham
+addInput.TextSize = 14
+addInput.Text = ""
+addInput.PlaceholderText = "Ej: 123456789"
+Instance.new("UICorner", addInput).CornerRadius = UDim.new(0, 8)
+
+local addBtn = pageButton(adminPage, 150, "➕ AGREGAR USUARIO", Color3.fromRGB(0, 150, 0), 0.92)
+
+local removeLabel = Instance.new("TextLabel", adminPage)
+removeLabel.Size = UDim2.new(0.92, 0, 0, 20)
+removeLabel.Position = UDim2.new(0.04, 0, 0, 210)
+removeLabel.BackgroundTransparency = 1
+removeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+removeLabel.Font = Enum.Font.Gotham
+removeLabel.TextSize = 11
+removeLabel.Text = "ID del usuario a ELIMINAR:"
+removeLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local removeInput = Instance.new("TextBox", adminPage)
+removeInput.Size = UDim2.new(0.92, 0, 0, 35)
+removeInput.Position = UDim2.new(0.04, 0, 0, 235)
+removeInput.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+removeInput.TextColor3 = Color3.new(1, 1, 1)
+removeInput.Font = Enum.Font.Gotham
+removeInput.TextSize = 14
+removeInput.Text = ""
+removeInput.PlaceholderText = "Ej: 123456789"
+Instance.new("UICorner", removeInput).CornerRadius = UDim.new(0, 8)
+
+local removeBtn = pageButton(adminPage, 280, "❌ ELIMINAR USUARIO", Color3.fromRGB(200, 50, 50), 0.92)
+
+local listLabel = Instance.new("TextLabel", adminPage)
+listLabel.Size = UDim2.new(0.92, 0, 0, 20)
+listLabel.Position = UDim2.new(0.04, 0, 0, 340)
+listLabel.BackgroundTransparency = 1
+listLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+listLabel.Font = Enum.Font.GothamBold
+listLabel.TextSize = 12
+listLabel.Text = "📋 USUARIOS AUTORIZADOS:"
+listLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local userList = Instance.new("ScrollingFrame", adminPage)
+userList.Size = UDim2.new(0.92, 0, 0, 120)
+userList.Position = UDim2.new(0.04, 0, 0, 365)
+userList.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+userList.BorderSizePixel = 0
+Instance.new("UICorner", userList).CornerRadius = UDim.new(0, 8)
+
+local userListLayout = Instance.new("UIListLayout", userList)
+userListLayout.Padding = UDim.new(0, 5)
+
+local adminStatus = Instance.new("TextLabel", adminPage)
+adminStatus.Size = UDim2.new(0.92, 0, 0, 25)
+adminStatus.Position = UDim2.new(0.04, 0, 0, 495)
+adminStatus.BackgroundTransparency = 1
+adminStatus.TextColor3 = Color3.fromRGB(200, 200, 200)
+adminStatus.Font = Enum.Font.Gotham
+adminStatus.TextSize = 11
+adminStatus.Text = ""
+adminStatus.TextXAlignment = Enum.TextXAlignment.Center
+
+local function updateUserList()
+	for _, child in pairs(userList:GetChildren()) do
+		if child:IsA("TextLabel") then
+			child:Destroy()
+		end
+	end
+	
+	for _, userId in pairs(allowedUsers) do
+		local userLabel = Instance.new("TextLabel", userList)
+		userLabel.Size = UDim2.new(1, -10, 0, 25)
+		userLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+		userLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+		userLabel.Font = Enum.Font.Gotham
+		userLabel.TextSize = 12
+		userLabel.Text = "🟢 " .. userId
+		userLabel.TextXAlignment = Enum.TextXAlignment.Left
+		Instance.new("UICorner", userLabel).CornerRadius = UDim.new(0, 6)
+	end
+	
+	userList.CanvasSize = UDim2.new(0, 0, 0, (#allowedUsers) * 30)
+end
+
+addBtn.MouseButton1Click:Connect(function()
+	local userId = addInput.Text
+	if userId and userId ~= "" then
+		if addUserToWhitelist(userId) then
+			adminStatus.Text = "✅ Usuario " .. userId .. " agregado correctamente"
+			adminStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
+			updateUserList()
+			addInput.Text = ""
+		else
+			adminStatus.Text = "⚠️ El usuario " .. userId .. " ya está en la lista"
+			adminStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+		end
+	else
+		adminStatus.Text = "❌ Ingresa un ID válido"
+		adminStatus.TextColor3 = Color3.fromRGB(255, 0, 0)
+	end
+	task.wait(3)
+	adminStatus.Text = ""
+end)
+
+removeBtn.MouseButton1Click:Connect(function()
+	local userId = removeInput.Text
+	if userId and userId ~= "" then
+		if userId == CREATOR_USER_ID then
+			adminStatus.Text = "❌ No puedes eliminar al creador"
+			adminStatus.TextColor3 = Color3.fromRGB(255, 0, 0)
+		elseif removeUserFromWhitelist(userId) then
+			adminStatus.Text = "✅ Usuario " .. userId .. " eliminado correctamente"
+			adminStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
+			updateUserList()
+			removeInput.Text = ""
+		else
+			adminStatus.Text = "⚠️ El usuario " .. userId .. " no está en la lista"
+			adminStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+		end
+	else
+		adminStatus.Text = "❌ Ingresa un ID válido"
+		adminStatus.TextColor3 = Color3.fromRGB(255, 0, 0)
+	end
+	task.wait(3)
+	adminStatus.Text = ""
+end)
+
+updateUserList()
