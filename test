@@ -27,7 +27,6 @@ local TextEvent = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("Text
 local function blockAllErrorNotifications()
     if not TextEvent then return end
     
-    -- Desconectar todas las conexiones existentes del evento
     local success, connections = pcall(function()
         return getconnections(TextEvent.OnClientEvent)
     end)
@@ -38,23 +37,19 @@ local function blockAllErrorNotifications()
         end
     end
     
-    -- Crear un nuevo evento que BLOQUEE TODOS LOS ERRORES
     local oldEvent = TextEvent.OnClientEvent
     TextEvent.OnClientEvent = Instance.new("BindableEvent").Event
     
     TextEvent.OnClientEvent:Connect(function(typ, text)
-        -- BLOQUEAR CUALQUIER MENSAJE DE TIPO "Error"
         if typ == "Error" then
-            return -- No mostrar NINGÚN mensaje de error
+            return
         end
-        -- Mostrar mensajes que NO son de error
         if oldEvent then
             oldEvent(typ, text)
         end
     end)
 end
 
--- Ejecutar bloqueo
 pcall(blockAllErrorNotifications)
 
 -- VARIABLES GLOBALES
@@ -445,7 +440,7 @@ spawnTimeLabel2.Text = "🐰 Bunny: 11s"
 spawnTimeLabel2.TextXAlignment = Enum.TextXAlignment.Center
 
 -- =========================
--- FARM 1
+-- FARM 1 (SIN CAMBIOS)
 -- =========================
 
 local function startFarm1()
@@ -555,7 +550,7 @@ local function startFarm1()
 end
 
 -- =========================
--- FARM 2 - CON SPEAKERWOMAN INFINITA EN BUNNY Y UNA EN TITAN
+-- FARM 2 - CON LARGE SPEAKER HELICOPTER (REEMPLAZA TITAN)
 -- =========================
 
 local function startFarm2()
@@ -580,7 +575,8 @@ local function startFarm2()
 		local bunnyCFrame2 = CFrame.new(29.8349686, 84.2882462, -17.7190742, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 		local speakerwomanCFrame = CFrame.new(-2.3337020874023438, 82.93824768066406, 19.79852294921875, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 		local mechCFrame2 = CFrame.new(7.5827179, 88.5881958, -28.159481, 1, 0, 0, 0, 1, 0, 0, 0, 1)
-		local titanCFrame2 = CFrame.new(4.03090668, 89.2408905, -1.34775352, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		-- NUEVO CFrame para Large Speaker Helicopter
+		local helicopterCFrame = CFrame.new(12.570381164550781, 85.38301086425781, -0.2645606994628906, -4.371138828673793e-08, 0, 1, 0, 1, 0, -1, 0, -4.371138828673793e-08)
 		
 		-- Colocar Scientists
 		statusLabel2.Text = "🔬 Colocando 4 Scientists..."
@@ -604,7 +600,7 @@ local function startFarm2()
 				mejorarUnidad("Large Bunny TV Man")
 				mejorarUnidad("Scientist Cameraman")
 				mejorarUnidad("Mech Cameraman")
-				mejorarUnidad("Titan Cinemaman")
+				mejorarUnidad("Large Speaker Helicopter")  -- AÑADIDO
 				mejorarUnidad("Upgraded Speakerwoman")
 				task.wait(0.3)
 			end
@@ -689,7 +685,7 @@ local function startFarm2()
 		
 		if not farm2Active then return end
 		
-		-- ===== FASE 3: TITAN CINEMAMAN - ELIMINAR TODAS LAS SPEAKERWOMAN EXCEPTO UNA =====
+		-- ===== FASE 3: LARGE SPEAKER HELICOPTER EN LUGAR DE TITAN =====
 		statusLabel2.Text = "🗑️ Eliminando Bunnies y Speakerwoman extras..."
 		venderTodosLosBunnies()
 		deleteAllSpeakerwomanExceptOne()
@@ -698,27 +694,27 @@ local function startFarm2()
 		
 		if not farm2Active then return end
 		
-		statusLabel2.Text = "🎬 Fase 3: TITAN CINEMAMAN"
-		timerLabel2.Text = "⏱️ Fase: TITAN"
-		timerLabel2.TextColor3 = Color3.fromRGB(255, 150, 100)
+		statusLabel2.Text = "🚁 Fase 3: LARGE SPEAKER HELICOPTER"
+		timerLabel2.Text = "⏱️ Fase: HELICOPTER"
+		timerLabel2.TextColor3 = Color3.fromRGB(100, 200, 255)
 		
-		local titanCount = 0
+		local helicopterCount = 0
 		
 		while farm2Active do
-			spawnTimeLabel2.Text = "🎬 Titan en 30s"
-			timerLabel2.Text = "⏱️ TITAN: INFINITO"
+			spawnTimeLabel2.Text = "🚁 Helicopter en 30s"
+			timerLabel2.Text = "⏱️ HELICOPTER: INFINITO"
 			
 			local waited = 0
 			while farm2Active and waited < 30 do
 				task.wait(1)
 				waited = waited + 1
-				spawnTimeLabel2.Text = "🎬 Titan en " .. (30 - waited) .. "s"
+				spawnTimeLabel2.Text = "🚁 Helicopter en " .. (30 - waited) .. "s"
 			end
 			
 			if farm2Active then
-				pcall(function() RS.Functions.SpawnTower:InvokeServer("Titan Cinemaman", titanCFrame2) end)
-				titanCount = titanCount + 1
-				statusLabel2.Text = "🎬 Titan #" .. titanCount
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Speaker Helicopter", helicopterCFrame) end)
+				helicopterCount = helicopterCount + 1
+				statusLabel2.Text = "🚁 Helicopter #" .. helicopterCount
 			end
 		end
 	end)
