@@ -1,5 +1,5 @@
 -- =========================
--- GRIFF HUB v9 - AUTO FARM INFINITO + MODO BUNNY+MECH
+-- GRIFF HUB v9 - AUTO FARM INFINITO + MODO INSANE
 -- =========================
 
 -- 💤 ANTI AFK
@@ -222,7 +222,6 @@ local function newTab(name)
 end
 
 local farmTab = newTab("🌾 AutoFarm")
-local farm2Tab = newTab("🤖 Modo 3")
 local optimizarTab = newTab("⚡ Optimizar")
 
 local function newPage()
@@ -236,25 +235,16 @@ local function newPage()
 end
 
 local farmPage = newPage()
-local farm2Page = newPage()
 local optimizarPage = newPage()
 farmPage.Visible = true
 
 farmTab.MouseButton1Click:Connect(function()
 	farmPage.Visible = true
-	farm2Page.Visible = false
-	optimizarPage.Visible = false
-end)
-
-farm2Tab.MouseButton1Click:Connect(function()
-	farmPage.Visible = false
-	farm2Page.Visible = true
 	optimizarPage.Visible = false
 end)
 
 optimizarTab.MouseButton1Click:Connect(function()
 	farmPage.Visible = false
-	farm2Page.Visible = false
 	optimizarPage.Visible = true
 end)
 
@@ -424,6 +414,47 @@ spawnTimeLabel2.Font = Enum.Font.Gotham
 spawnTimeLabel2.TextSize = 11
 spawnTimeLabel2.Text = "🐰 Bunny: 11s"
 spawnTimeLabel2.TextXAlignment = Enum.TextXAlignment.Center
+
+-- =========================
+-- MODO 3: INSANE (BUNNY + MECH)
+-- =========================
+
+local farmBtn3
+if wasActive3 then
+	farmBtn3 = pageButton(farmPage, 280, "💀 Detener INSANE", Color3.fromRGB(200, 50, 50))
+else
+	farmBtn3 = pageButton(farmPage, 280, "💀 Activar INSANE", Color3.fromRGB(255, 50, 50))
+end
+
+local statusLabel3 = Instance.new("TextLabel", farmPage)
+statusLabel3.Size = UDim2.new(0.92, 0, 0, 25)
+statusLabel3.Position = UDim2.new(0.04, 0, 0, 330)
+statusLabel3.BackgroundTransparency = 1
+statusLabel3.TextColor3 = wasActive3 and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
+statusLabel3.Font = Enum.Font.Gotham
+statusLabel3.TextSize = 11
+statusLabel3.Text = wasActive3 and "▶️ INSANE Activado" or "⏸️ INSANE Inactivo"
+statusLabel3.TextXAlignment = Enum.TextXAlignment.Center
+
+local timerLabel3 = Instance.new("TextLabel", farmPage)
+timerLabel3.Size = UDim2.new(0.92, 0, 0, 25)
+timerLabel3.Position = UDim2.new(0.04, 0, 0, 355)
+timerLabel3.BackgroundTransparency = 1
+timerLabel3.TextColor3 = Color3.fromRGB(255, 200, 0)
+timerLabel3.Font = Enum.Font.Gotham
+timerLabel3.TextSize = 11
+timerLabel3.Text = "⏱️ INSANE: Inactivo"
+timerLabel3.TextXAlignment = Enum.TextXAlignment.Center
+
+local spawnTimeLabel3 = Instance.new("TextLabel", farmPage)
+spawnTimeLabel3.Size = UDim2.new(0.92, 0, 0, 25)
+spawnTimeLabel3.Position = UDim2.new(0.04, 0, 0, 380)
+spawnTimeLabel3.BackgroundTransparency = 1
+spawnTimeLabel3.TextColor3 = Color3.fromRGB(180, 180, 255)
+spawnTimeLabel3.Font = Enum.Font.Gotham
+spawnTimeLabel3.TextSize = 11
+spawnTimeLabel3.Text = "🐰 Bunny: 8s | 🤖 Mech: 60s"
+spawnTimeLabel3.TextXAlignment = Enum.TextXAlignment.Center
 
 -- =========================
 -- FARM 1 (ORIGINAL)
@@ -704,47 +735,9 @@ local function startFarm2()
 end
 
 -- =========================
--- MODO 3: BUNNY + MECH (NUEVO)
+-- MODO 3: INSANE (BUNNY + MECH)
 -- =========================
 
-local farmBtn3
-if wasActive3 then
-	farmBtn3 = pageButton(farm2Page, 10, "🤖 Detener Bunny+Mech", Color3.fromRGB(200, 50, 50))
-else
-	farmBtn3 = pageButton(farm2Page, 10, "🐰🤖 Activar Bunny+Mech", Color3.fromRGB(255, 100, 50))
-end
-
-local statusLabel3 = Instance.new("TextLabel", farm2Page)
-statusLabel3.Size = UDim2.new(0.92, 0, 0, 25)
-statusLabel3.Position = UDim2.new(0.04, 0, 0, 60)
-statusLabel3.BackgroundTransparency = 1
-statusLabel3.TextColor3 = wasActive3 and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
-statusLabel3.Font = Enum.Font.Gotham
-statusLabel3.TextSize = 11
-statusLabel3.Text = wasActive3 and "▶️ Bunny+Mech Activado" or "⏸️ Bunny+Mech Inactivo"
-statusLabel3.TextXAlignment = Enum.TextXAlignment.Center
-
-local timerLabel3 = Instance.new("TextLabel", farm2Page)
-timerLabel3.Size = UDim2.new(0.92, 0, 0, 25)
-timerLabel3.Position = UDim2.new(0.04, 0, 0, 85)
-timerLabel3.BackgroundTransparency = 1
-timerLabel3.TextColor3 = Color3.fromRGB(255, 200, 0)
-timerLabel3.Font = Enum.Font.Gotham
-timerLabel3.TextSize = 11
-timerLabel3.Text = "⏱️ Modo 3: Inactivo"
-timerLabel3.TextXAlignment = Enum.TextXAlignment.Center
-
-local spawnTimeLabel3 = Instance.new("TextLabel", farm2Page)
-spawnTimeLabel3.Size = UDim2.new(0.92, 0, 0, 25)
-spawnTimeLabel3.Position = UDim2.new(0.04, 0, 0, 110)
-spawnTimeLabel3.BackgroundTransparency = 1
-spawnTimeLabel3.TextColor3 = Color3.fromRGB(180, 180, 255)
-spawnTimeLabel3.Font = Enum.Font.Gotham
-spawnTimeLabel3.TextSize = 11
-spawnTimeLabel3.Text = "🐰 Bunny: 8s | 🤖 Mech: 60s"
-spawnTimeLabel3.TextXAlignment = Enum.TextXAlignment.Center
-
--- FUNCIÓN FARM 3: BUNNY + MECH
 local function startFarm3()
 	farm3Active = true
 	
@@ -753,17 +746,17 @@ local function startFarm3()
 		if char and char:FindFirstChild("HumanoidRootPart") then
 			char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(139.498398, 5.928603, 130.894547))
 			task.wait(0.3)
-			pcall(function() RS.Events.StartElevator:FireServer("Elevator10") end)
+				pcall(function() RS.Events.StartElevator:FireServer("Elevator10") end)
 			statusLabel3.Text = "✅ TP Completado"
 			task.wait(2)
 		end
 		
 		if not farm3Active then return end
 		
-		statusLabel3.Text = "▶️ Bunny+Mech Activado"
+		statusLabel3.Text = "💀 INSANE Activado"
 		statusLabel3.TextColor3 = Color3.fromRGB(0, 255, 0)
 		
-		-- Coordenadas
+		-- Coordenadas INSANE
 		local bunnyCFrame = CFrame.new(-76.93643951416016, 85.83458709716797, -93.22852325439453, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 		local mechCFrame = CFrame.new(-65.35576629638672, 88.77156066894531, -93.34323120117188, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 		
@@ -784,16 +777,15 @@ local function startFarm3()
 			end
 		end)
 		
-		statusLabel3.Text = "🐰 Spawneando Bunny cada 8s..."
-		timerLabel3.Text = "⏱️ Fase: BUNNY + MECH"
-		timerLabel3.TextColor3 = Color3.fromRGB(100, 255, 100)
+		statusLabel3.Text = "💀 Spawneando Bunny cada 8s..."
+		timerLabel3.Text = "⏱️ Fase: INSANE"
+		timerLabel3.TextColor3 = Color3.fromRGB(255, 50, 50)
 		
 		local bunnyCount = 0
 		local mechCount = 0
 		local lastMechTime = tick()
 		
 		while farm3Active do
-			-- Spawn Bunny cada 8 segundos
 			spawnTimeLabel3.Text = "🐰 Bunny en 8s | 🤖 Mech en " .. math.max(0, 60 - (tick() - lastMechTime)) .. "s"
 			timerLabel3.Text = "⏱️ BUNNY: CADA 8s"
 			
@@ -809,14 +801,14 @@ local function startFarm3()
 				-- Spawn Bunny
 				pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame) end)
 				bunnyCount = bunnyCount + 1
-				statusLabel3.Text = "🐰 Bunny #" .. bunnyCount
+				statusLabel3.Text = "💀 Bunny #" .. bunnyCount
 				
 				-- Spawn Mech cada 60 segundos
 				if tick() - lastMechTime >= 60 then
 					pcall(function() RS.Functions.SpawnTower:InvokeServer("Mech Cameraman", mechCFrame) end)
 					mechCount = mechCount + 1
 					lastMechTime = tick()
-					statusLabel3.Text = "🐰 Bunny #" .. bunnyCount .. " | 🤖 Mech #" .. mechCount
+					statusLabel3.Text = "💀 Bunny #" .. bunnyCount .. " | Mech #" .. mechCount
 				end
 			end
 		end
@@ -865,15 +857,15 @@ farmBtn3.MouseButton1Click:Connect(function()
 	farm3Active = not farm3Active
 	saveState3()
 	if farm3Active then
-		farmBtn3.Text = "🤖 Detener Bunny+Mech"
+		farmBtn3.Text = "💀 Detener INSANE"
 		farmBtn3.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 		startFarm3()
 	else
-		farmBtn3.Text = "🐰🤖 Activar Bunny+Mech"
-		farmBtn3.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
-		statusLabel3.Text = "⏸️ Bunny+Mech Inactivo"
+		farmBtn3.Text = "💀 Activar INSANE"
+		farmBtn3.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+		statusLabel3.Text = "⏸️ INSANE Inactivo"
 		statusLabel3.TextColor3 = Color3.fromRGB(255, 255, 0)
-		timerLabel3.Text = "⏱️ Modo 3: Inactivo"
+		timerLabel3.Text = "⏱️ INSANE: Inactivo"
 		spawnTimeLabel3.Text = "🐰 Bunny: 8s | 🤖 Mech: 60s"
 	end
 end)
@@ -924,4 +916,4 @@ rejoinBtn.MouseButton1Click:Connect(function()
 	pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
 end)
 
-print("✅ Griff Hub v9 cargado correctamente - 3 MODOS DISPONIBLES")
+print("✅ Griff Hub v9 cargado correctamente - 3 MODOS: Farm 1, Farm 2, INSANE")
