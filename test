@@ -1,5 +1,5 @@
 -- =========================
--- GRIFF HUB v9 - MODO INSANE
+-- GRIFF HUB v9 - AUTO FARM INFINITO + MODO BUNNY+MECH
 -- =========================
 
 -- 💤 ANTI AFK
@@ -24,42 +24,84 @@ local Lighting = game:GetService("Lighting")
 
 local TextEvent = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("TextEvent")
 
-local function blockAllErrorNotifications()
-    if not TextEvent then return end
-    local success, connections = pcall(function() return getconnections(TextEvent.OnClientEvent) end)
+if TextEvent then
+    local success, connections = pcall(function()
+        return getconnections(TextEvent.OnClientEvent)
+    end)
+    
     if success and connections then
         for _, conn in ipairs(connections) do
             pcall(function() conn:Disable() end)
         end
     end
+    
     local oldEvent = TextEvent.OnClientEvent
     TextEvent.OnClientEvent = Instance.new("BindableEvent").Event
+    
     TextEvent.OnClientEvent:Connect(function(typ, text)
-        if typ == "Error" then return end
-        if oldEvent then oldEvent(typ, text) end
+        if typ == "Error" then
+            return
+        end
+        if oldEvent then
+            oldEvent(typ, text)
+        end
     end)
 end
-pcall(blockAllErrorNotifications)
 
 -- =========================
+-- MOSTRAR LOADING
+-- =========================
+
+local function ShowLoadingNotification()
+    local TextsGUI = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("TextEvent")
+    if TextsGUI then
+        pcall(function()
+            TextsGUI:FireServer("Done", "🥚 Loading Griff Hub v9...")
+        end)
+    end
+end
+
+ShowLoadingNotification()
+
 -- VARIABLES GLOBALES
--- =========================
-
 local farmActive = false
-local currentWaitTime = 10
-local minWaitTime = 3
+local farm2Active = false
+local farm3Active = false
+local currentWaitTime = 16
+local currentWaitTime2 = 11
+local minWaitTime = 5
 
 -- =========================
 -- SISTEMA DE GUARDADO
 -- =========================
 
-local SaveFileName = "GriffHub_Insane_" .. LocalPlayer.UserId .. ".json"
+local SaveFileName = "GriffHub_SaveData_" .. LocalPlayer.UserId .. ".json"
+local SaveFileName2 = "GriffHub_SaveData2_" .. LocalPlayer.UserId .. ".json"
+local SaveFileName3 = "GriffHub_SaveData3_" .. LocalPlayer.UserId .. ".json"
 
 local function saveState()
 	local data = { farmActive = farmActive }
 	pcall(function()
 		if writefile then
 			writefile(SaveFileName, game:GetService("HttpService"):JSONEncode(data))
+		end
+	end)
+end
+
+local function saveState2()
+	local data = { farm2Active = farm2Active }
+	pcall(function()
+		if writefile then
+			writefile(SaveFileName2, game:GetService("HttpService"):JSONEncode(data))
+		end
+	end)
+end
+
+local function saveState3()
+	local data = { farm3Active = farm3Active }
+	pcall(function()
+		if writefile then
+			writefile(SaveFileName3, game:GetService("HttpService"):JSONEncode(data))
 		end
 	end)
 end
@@ -77,10 +119,160 @@ local function loadState()
 	return false
 end
 
+local function loadState2()
+	local success, content = pcall(function()
+		if readfile then return readfile(SaveFileName2) end
+	end)
+	if success and content then
+		local success2, data = pcall(function()
+			return game:GetService("HttpService"):JSONDecode(content)
+		end)
+		if success2 and data then return data.farm2Active or false end
+	end
+	return false
+end
+
+local function loadState3()
+	local success, content = pcall(function()
+		if readfile then return readfile(SaveFileName3) end
+	end)
+	if success and content then
+		local success2, data = pcall(function()
+			return game:GetService("HttpService"):JSONDecode(content)
+		end)
+		if success2 and data then return data.farm3Active or false end
+	end
+	return false
+end
+
 -- =========================
--- FUNCIONES
+-- GUI ROOT
 -- =========================
 
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "GriffHubV9"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game:GetService("CoreGui")
+
+local toggleBtn = Instance.new("TextButton", screenGui)
+toggleBtn.Size = UDim2.new(0, 120, 0, 40)
+toggleBtn.Position = UDim2.new(0, 20, 0.15, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(138,43,226)
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 14
+toggleBtn.Text = "🥚 Griff Hub v9"
+toggleBtn.BorderSizePixel = 0
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 8)
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 400, 0, 650)
+mainFrame.Position = UDim2.new(0.32, 0, 0.1, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = false
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+toggleBtn.MouseButton1Click:Connect(function()
+	mainFrame.Visible = not mainFrame.Visible
+end)
+
+local header = Instance.new("Frame", mainFrame)
+header.Size = UDim2.new(1,0,0,44)
+header.Position = UDim2.new(0,0,0,0)
+header.BackgroundColor3 = Color3.fromRGB(138,43,226)
+header.BorderSizePixel = 0
+Instance.new("UICorner", header).CornerRadius = UDim.new(0,12)
+
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1,-20,1,0)
+title.Position = UDim2.new(0,10,0,0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.Text = "🥚 Griff Hub v9 (3 Modos)"
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- =========================
+-- TABS Y PÁGINAS
+-- =========================
+
+local tabs = Instance.new("Frame", mainFrame)
+tabs.Size = UDim2.new(1,0,0,40)
+tabs.Position = UDim2.new(0,0,0,48)
+tabs.BackgroundTransparency = 1
+
+local tabLayout = Instance.new("UIListLayout", tabs)
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.Padding = UDim.new(0,8)
+tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local function newTab(name)
+	local b = Instance.new("TextButton", tabs)
+	b.Size = UDim2.new(0.28, 0, 1, 0)
+	b.BackgroundColor3 = Color3.fromRGB(50,50,60)
+	b.TextColor3 = Color3.new(1,1,1)
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 14
+	b.Text = name
+	b.BorderSizePixel = 0
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+	return b
+end
+
+local farmTab = newTab("🌾 AutoFarm")
+local farm2Tab = newTab("🤖 Modo 3")
+local optimizarTab = newTab("⚡ Optimizar")
+
+local function newPage()
+	local p = Instance.new("ScrollingFrame", mainFrame)
+	p.Size = UDim2.new(1, -14, 1, -110)
+	p.Position = UDim2.new(0, 7, 0, 100)
+	p.BackgroundTransparency = 1
+	p.ScrollBarThickness = 6
+	p.Visible = false
+	return p
+end
+
+local farmPage = newPage()
+local farm2Page = newPage()
+local optimizarPage = newPage()
+farmPage.Visible = true
+
+farmTab.MouseButton1Click:Connect(function()
+	farmPage.Visible = true
+	farm2Page.Visible = false
+	optimizarPage.Visible = false
+end)
+
+farm2Tab.MouseButton1Click:Connect(function()
+	farmPage.Visible = false
+	farm2Page.Visible = true
+	optimizarPage.Visible = false
+end)
+
+optimizarTab.MouseButton1Click:Connect(function()
+	farmPage.Visible = false
+	farm2Page.Visible = false
+	optimizarPage.Visible = true
+end)
+
+local function pageButton(parent, y, text, color)
+	local btn = Instance.new("TextButton", parent)
+	btn.Size = UDim2.new(0.92, 0, 0, 44)
+	btn.Position = UDim2.new(0.04, 0, 0, y)
+	btn.BackgroundColor3 = color
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 16
+	btn.Text = text
+	btn.BorderSizePixel = 0
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+	return btn
+end
+
+-- FUNCIONES UTILES
 local function mejorarUnidad(nombreUnidad)
 	local functions = RS:FindFirstChild("Functions")
 	local spawnTower = functions and functions:FindFirstChild("SpawnTower")
@@ -103,11 +295,141 @@ local function mejorarUnidad(nombreUnidad)
 	end
 end
 
+local function venderTodosLosBunnies()
+	local sellTower = RS.Events:FindFirstChild("SellTower") or RS.Functions:FindFirstChild("SellTower")
+	if not sellTower then return 0 end
+	
+	local towers = WS:FindFirstChild("Towers")
+	if not towers then return 0 end
+	
+	local vendidos = 0
+	for _, tower in pairs(towers:GetChildren()) do
+		local config = tower:FindFirstChild("Config")
+		if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
+			local tName = config:FindFirstChild("TowerName")
+			if tName and (tName.Value == "Large Bunny TV Man" or tName.Value == "Bunny TV Man") then
+				pcall(function() sellTower:InvokeServer(tower) end)
+				vendidos = vendidos + 1
+			end
+		end
+	end
+	return vendidos
+end
+
+local function deleteAllSpeakerwomanExceptOne()
+	local sellTower = RS.Events:FindFirstChild("SellTower") or RS.Functions:FindFirstChild("SellTower")
+	if not sellTower then return end
+	
+	local towers = WS:FindFirstChild("Towers")
+	if not towers then return end
+	
+	local keepOne = true
+	for _, tower in pairs(towers:GetChildren()) do
+		local config = tower:FindFirstChild("Config")
+		if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
+			local tName = config:FindFirstChild("TowerName")
+			if tName and tName.Value == "Upgraded Speakerwoman" then
+				if keepOne then
+					keepOne = false
+				else
+					pcall(function() sellTower:InvokeServer(tower) end)
+				end
+			end
+		end
+	end
+end
+
 -- =========================
--- FARM INSANE (con coordenadas específicas)
+-- FARM 1 (ORIGINAL)
 -- =========================
 
-local function startFarm()
+local wasActive = loadState()
+local wasActive2 = loadState2()
+local wasActive3 = loadState3()
+
+local farmBtn
+if wasActive then
+	farmBtn = pageButton(farmPage, 10, "🌾 Detener Farm 1", Color3.fromRGB(200, 50, 50))
+else
+	farmBtn = pageButton(farmPage, 10, "🌾 Activar Farm 1", Color3.fromRGB(138, 43, 226))
+end
+
+local statusLabel1 = Instance.new("TextLabel", farmPage)
+statusLabel1.Size = UDim2.new(0.92, 0, 0, 25)
+statusLabel1.Position = UDim2.new(0.04, 0, 0, 60)
+statusLabel1.BackgroundTransparency = 1
+statusLabel1.TextColor3 = wasActive and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
+statusLabel1.Font = Enum.Font.Gotham
+statusLabel1.TextSize = 11
+statusLabel1.Text = wasActive and "▶️ Farm 1 Activado" or "⏸️ Farm 1 Inactivo"
+statusLabel1.TextXAlignment = Enum.TextXAlignment.Center
+
+local timerLabel1 = Instance.new("TextLabel", farmPage)
+timerLabel1.Size = UDim2.new(0.92, 0, 0, 25)
+timerLabel1.Position = UDim2.new(0.04, 0, 0, 85)
+timerLabel1.BackgroundTransparency = 1
+timerLabel1.TextColor3 = Color3.fromRGB(255, 200, 0)
+timerLabel1.Font = Enum.Font.Gotham
+timerLabel1.TextSize = 11
+timerLabel1.Text = "⏱️ Farm 1: Inactivo"
+timerLabel1.TextXAlignment = Enum.TextXAlignment.Center
+
+local spawnTimeLabel1 = Instance.new("TextLabel", farmPage)
+spawnTimeLabel1.Size = UDim2.new(0.92, 0, 0, 25)
+spawnTimeLabel1.Position = UDim2.new(0.04, 0, 0, 110)
+spawnTimeLabel1.BackgroundTransparency = 1
+spawnTimeLabel1.TextColor3 = Color3.fromRGB(180, 180, 255)
+spawnTimeLabel1.Font = Enum.Font.Gotham
+spawnTimeLabel1.TextSize = 11
+spawnTimeLabel1.Text = "🐰 Bunny: 16s"
+spawnTimeLabel1.TextXAlignment = Enum.TextXAlignment.Center
+
+-- =========================
+-- FARM 2 (ORIGINAL)
+-- =========================
+
+local farmBtn2
+if wasActive2 then
+	farmBtn2 = pageButton(farmPage, 145, "🌾 Detener Farm 2", Color3.fromRGB(200, 50, 50))
+else
+	farmBtn2 = pageButton(farmPage, 145, "🌾 Activar Farm 2", Color3.fromRGB(50, 150, 200))
+end
+
+local statusLabel2 = Instance.new("TextLabel", farmPage)
+statusLabel2.Size = UDim2.new(0.92, 0, 0, 25)
+statusLabel2.Position = UDim2.new(0.04, 0, 0, 195)
+statusLabel2.BackgroundTransparency = 1
+statusLabel2.TextColor3 = wasActive2 and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
+statusLabel2.Font = Enum.Font.Gotham
+statusLabel2.TextSize = 11
+statusLabel2.Text = wasActive2 and "▶️ Farm 2 Activado" or "⏸️ Farm 2 Inactivo"
+statusLabel2.TextXAlignment = Enum.TextXAlignment.Center
+
+local timerLabel2 = Instance.new("TextLabel", farmPage)
+timerLabel2.Size = UDim2.new(0.92, 0, 0, 25)
+timerLabel2.Position = UDim2.new(0.04, 0, 0, 220)
+timerLabel2.BackgroundTransparency = 1
+timerLabel2.TextColor3 = Color3.fromRGB(255, 200, 0)
+timerLabel2.Font = Enum.Font.Gotham
+timerLabel2.TextSize = 11
+timerLabel2.Text = "⏱️ Farm 2: Inactivo"
+timerLabel2.TextXAlignment = Enum.TextXAlignment.Center
+
+local spawnTimeLabel2 = Instance.new("TextLabel", farmPage)
+spawnTimeLabel2.Size = UDim2.new(0.92, 0, 0, 25)
+spawnTimeLabel2.Position = UDim2.new(0.04, 0, 0, 245)
+spawnTimeLabel2.BackgroundTransparency = 1
+spawnTimeLabel2.TextColor3 = Color3.fromRGB(180, 180, 255)
+spawnTimeLabel2.Font = Enum.Font.Gotham
+spawnTimeLabel2.TextSize = 11
+spawnTimeLabel2.Text = "🐰 Bunny: 11s"
+spawnTimeLabel2.TextXAlignment = Enum.TextXAlignment.Center
+
+-- =========================
+-- FARM 1 (ORIGINAL)
+-- =========================
+
+local function startFarm1()
 	farmActive = true
 	
 	task.spawn(function()
@@ -116,17 +438,16 @@ local function startFarm()
 			char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(21.937172, 5.037024, -161.283066))
 			task.wait(0.1)
 			pcall(function() RS.Events.StartElevator:FireServer("Elevator14") end)
-			statusLabel.Text = "✅ TP Completado"
+			statusLabel1.Text = "✅ TP Completado"
 			task.wait(2)
 		end
 		
 		if not farmActive then return end
 		
-		statusLabel.Text = "▶️ INSANE Activado"
-		statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+		statusLabel1.Text = "▶️ Farm 1 Activado"
+		statusLabel1.TextColor3 = Color3.fromRGB(0, 255, 0)
 		
-		-- Coordenadas específicas para INSANE
-		local bunnyCFrame = CFrame.new(-75.9942398071289, 85.8345947265625, -93.88702392578125, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		local bunnyCFrame = CFrame.new(-25.735321, 86.0418549, -85.5302887, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 		local titanCFrame = CFrame.new(-47.0388031, 90.3418045, -86.8553925, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 		
 		task.spawn(function()
@@ -144,218 +465,444 @@ local function startFarm()
 			end
 		end)
 		
-		statusLabel.Text = "🐰 INSANE - BUNNY"
-		timerLabel.Text = "⏱️ Fase: BUNNY"
-		timerLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+		statusLabel1.Text = "🐰 Farm 1 - BUNNY"
+		timerLabel1.Text = "⏱️ Fase: BUNNY"
+		timerLabel1.TextColor3 = Color3.fromRGB(255, 200, 0)
 		
-		currentWaitTime = 10
+		currentWaitTime = 16
 		local bunnyStartTime = tick()
 		local bunnyCount = 0
 		
 		while farmActive and (tick() - bunnyStartTime) < 60 do
 			local elapsed = tick() - bunnyStartTime
 			local timeLeft = math.max(0, 60 - elapsed)
-			timerLabel.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
-			spawnTimeLabel.Text = "🐰 Próximo Bunny en " .. currentWaitTime .. "s"
+			timerLabel1.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
+			spawnTimeLabel1.Text = "🐰 Próximo Bunny en " .. currentWaitTime .. "s"
 			
 			local waited = 0
 			while farmActive and waited < currentWaitTime and (tick() - bunnyStartTime) < 60 do
 				task.wait(1)
 				waited = waited + 1
+				elapsed = tick() - bunnyStartTime
 				if (tick() - bunnyStartTime) < 60 then
-					timerLabel.Text = "⏱️ BUNNY: " .. math.floor(60 - (tick() - bunnyStartTime)) .. "s"
-					spawnTimeLabel.Text = "🐰 Próximo Bunny en " .. (currentWaitTime - waited) .. "s"
+					local timeLeft = math.max(0, 60 - elapsed)
+					timerLabel1.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
+					spawnTimeLabel1.Text = "🐰 Próximo Bunny en " .. (currentWaitTime - waited) .. "s"
 				end
 			end
 			
 			if farmActive and (tick() - bunnyStartTime) < 60 then
 				pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame) end)
 				bunnyCount = bunnyCount + 1
-				statusLabel.Text = "🐰 INSANE Bunny #" .. bunnyCount
+				statusLabel1.Text = "🐰 Farm 1 Bunny #" .. bunnyCount
 				if currentWaitTime > minWaitTime then
 					currentWaitTime = math.max(minWaitTime, currentWaitTime - 1)
 				end
-				spawnTimeLabel.Text = "🐰 Bunny: " .. currentWaitTime .. "s"
+				spawnTimeLabel1.Text = "🐰 Bunny: " .. currentWaitTime .. "s"
 			end
 		end
 		
 		if not farmActive then return end
 		
-		statusLabel.Text = "🏆 INSANE - TITAN"
-		timerLabel.Text = "⏱️ Fase: TITAN"
-		timerLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+		statusLabel1.Text = "🏆 Farm 1 - TITAN"
+		timerLabel1.Text = "⏱️ Fase: TITAN"
+		timerLabel1.TextColor3 = Color3.fromRGB(255, 100, 100)
 		
-		currentWaitTime = 10
+		currentWaitTime = 16
 		local titanCount = 0
 		
 		while farmActive do
-			spawnTimeLabel.Text = "🏆 Próximo Titan en " .. currentWaitTime .. "s"
+			spawnTimeLabel1.Text = "🏆 Próximo Titan en " .. currentWaitTime .. "s"
 			
 			local waited = 0
 			while farmActive and waited < currentWaitTime do
 				task.wait(1)
 				waited = waited + 1
-				timerLabel.Text = "⏱️ TITAN: INFINITO"
-				spawnTimeLabel.Text = "🏆 Próximo Titan en " .. (currentWaitTime - waited) .. "s"
+				timerLabel1.Text = "⏱️ TITAN: INFINITO"
+				spawnTimeLabel1.Text = "🏆 Próximo Titan en " .. (currentWaitTime - waited) .. "s"
 			end
 			
 			if farmActive then
 				pcall(function() RS.Functions.SpawnTower:InvokeServer("Upgraded Titan Cameraman", titanCFrame) end)
 				titanCount = titanCount + 1
-				statusLabel.Text = "🏆 INSANE Titan #" .. titanCount
+				statusLabel1.Text = "🏆 Farm 1 Titan #" .. titanCount
 				if currentWaitTime > minWaitTime then
 					currentWaitTime = math.max(minWaitTime, currentWaitTime - 1)
 				end
-				spawnTimeLabel.Text = "🏆 Titan: " .. currentWaitTime .. "s"
+				spawnTimeLabel1.Text = "🏆 Titan: " .. currentWaitTime .. "s"
 			end
 		end
 	end)
 end
 
 -- =========================
--- GUI
+-- FARM 2 (ORIGINAL)
 -- =========================
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "GriffHubInsane"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = CoreGui
-
-local toggleBtn = Instance.new("TextButton", screenGui)
-toggleBtn.Size = UDim2.new(0, 120, 0, 40)
-toggleBtn.Position = UDim2.new(0, 20, 0.15, 0)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-toggleBtn.TextColor3 = Color3.new(1,1,1)
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 14
-toggleBtn.Text = "🔴 INSANE MODE"
-toggleBtn.BorderSizePixel = 0
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 8)
-
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 400, 0, 320)
-mainFrame.Position = UDim2.new(0.32, 0, 0.15, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,35)
-mainFrame.BorderSizePixel = 0
-mainFrame.Visible = false
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
-
-toggleBtn.MouseButton1Click:Connect(function()
-	mainFrame.Visible = not mainFrame.Visible
-end)
-
-local header = Instance.new("Frame", mainFrame)
-header.Size = UDim2.new(1,0,0,44)
-header.Position = UDim2.new(0,0,0,0)
-header.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-header.BorderSizePixel = 0
-Instance.new("UICorner", header).CornerRadius = UDim.new(0,12)
-
-local title = Instance.new("TextLabel", header)
-title.Size = UDim2.new(1,-20,1,0)
-title.Position = UDim2.new(0,10,0,0)
-title.BackgroundTransparency = 1
-title.TextColor3 = Color3.new(1,1,1)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
-title.Text = "🔴 INSANE MODE"
-title.TextXAlignment = Enum.TextXAlignment.Left
-
-local wasActive = loadState()
-
-local farmBtn
-if wasActive then
-	farmBtn = Instance.new("TextButton", mainFrame)
-	farmBtn.Size = UDim2.new(0.92, 0, 0, 50)
-	farmBtn.Position = UDim2.new(0.04, 0, 0, 60)
-	farmBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-	farmBtn.TextColor3 = Color3.new(1,1,1)
-	farmBtn.Font = Enum.Font.GothamBold
-	farmBtn.TextSize = 18
-	farmBtn.Text = "🔴 Detener INSANE"
-	farmBtn.BorderSizePixel = 0
-	Instance.new("UICorner", farmBtn).CornerRadius = UDim.new(0, 10)
-else
-	farmBtn = Instance.new("TextButton", mainFrame)
-	farmBtn.Size = UDim2.new(0.92, 0, 0, 50)
-	farmBtn.Position = UDim2.new(0.04, 0, 0, 60)
-	farmBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-	farmBtn.TextColor3 = Color3.new(1,1,1)
-	farmBtn.Font = Enum.Font.GothamBold
-	farmBtn.TextSize = 18
-	farmBtn.Text = "🔴 Activar INSANE"
-	farmBtn.BorderSizePixel = 0
-	Instance.new("UICorner", farmBtn).CornerRadius = UDim.new(0, 10)
+local function startFarm2()
+	farm2Active = true
+	
+	task.spawn(function()
+		local char = LocalPlayer.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(-116.770126, 6.841276, -175.873993))
+			task.wait(0.1)
+			pcall(function() RS.Events.StartElevator:FireServer("Elevator19") end)
+			statusLabel2.Text = "✅ TP Completado"
+			task.wait(2)
+		end
+		
+		if not farm2Active then return end
+		
+		statusLabel2.Text = "▶️ Farm 2 Activado"
+		statusLabel2.TextColor3 = Color3.fromRGB(0, 255, 0)
+		
+		local scientistCFrame = CFrame.new(41.5543137, 82.593399, -44.0053787, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		local bunnyCFrame2 = CFrame.new(29.8349686, 84.2882462, -17.7190742, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		local speakerwomanCFrame = CFrame.new(-2.3337020874023438, 82.93824768066406, 19.79852294921875, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		local mechCFrame2 = CFrame.new(7.5827179, 88.5881958, -28.159481, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		local titanCFrame2 = CFrame.new(4.03090668, 89.2408905, -1.34775352, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		
+		-- Colocar Scientists
+		statusLabel2.Text = "🔬 Colocando 4 Scientists..."
+		for i = 1, 4 do
+			pcall(function() RS.Functions.SpawnTower:InvokeServer("Scientist Cameraman", scientistCFrame) end)
+			statusLabel2.Text = "🔬 Scientist " .. i .. "/4"
+			task.wait(0.3)
+		end
+		
+		-- VoteSkip infinito
+		task.spawn(function()
+			while farm2Active do
+				pcall(function() RS.Events.VoteSkip:FireServer() end)
+				task.wait(0.05)
+			end
+		end)
+		
+		-- Mejora automática
+		task.spawn(function()
+			while farm2Active do
+				mejorarUnidad("Large Bunny TV Man")
+				mejorarUnidad("Scientist Cameraman")
+				mejorarUnidad("Mech Cameraman")
+				mejorarUnidad("Titan Cinemaman")
+				mejorarUnidad("Upgraded Speakerwoman")
+				task.wait(0.3)
+			end
+		end)
+		
+		-- FASE 1: BUNNY + SPEAKERWOMAN (60 segundos)
+		statusLabel2.Text = "🐰 Fase 1: BUNNY + SPEAKERWOMAN"
+		timerLabel2.Text = "⏱️ Fase: BUNNY"
+		timerLabel2.TextColor3 = Color3.fromRGB(255, 200, 0)
+		
+		currentWaitTime2 = 11
+		local bunnyStartTime = tick()
+		local bunnyCount = 0
+		local speakerwomanCount = 0
+		
+		while farm2Active and (tick() - bunnyStartTime) < 60 do
+			local elapsed = tick() - bunnyStartTime
+			local timeLeft = math.max(0, 60 - elapsed)
+			timerLabel2.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
+			spawnTimeLabel2.Text = "🐰 Bunny en " .. currentWaitTime2 .. "s | 📢 Speakerwoman"
+			
+			local waited = 0
+			while farm2Active and waited < currentWaitTime2 and (tick() - bunnyStartTime) < 60 do
+				task.wait(1)
+				waited = waited + 1
+				if (tick() - bunnyStartTime) < 60 then
+					timerLabel2.Text = "⏱️ BUNNY: " .. math.floor(60 - (tick() - bunnyStartTime)) .. "s"
+					spawnTimeLabel2.Text = "🐰 Bunny en " .. (currentWaitTime2 - waited) .. "s | 📢 Speakerwoman"
+				end
+			end
+			
+			if farm2Active and (tick() - bunnyStartTime) < 60 then
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame2) end)
+				bunnyCount = bunnyCount + 1
+				
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Upgraded Speakerwoman", speakerwomanCFrame) end)
+				speakerwomanCount = speakerwomanCount + 1
+				
+				statusLabel2.Text = "🐰 Bunny #" .. bunnyCount .. " | 📢 Speakerwoman #" .. speakerwomanCount
+				
+				if currentWaitTime2 > minWaitTime then
+					currentWaitTime2 = math.max(minWaitTime, currentWaitTime2 - 1)
+				end
+				spawnTimeLabel2.Text = "🐰 Bunny: " .. currentWaitTime2 .. "s | 📢 Speakerwoman: INFINITA"
+			end
+		end
+		
+		if not farm2Active then return end
+		
+		-- FASE 2: MECH (120 segundos)
+		statusLabel2.Text = "🤖 Fase 2: MECH (cada 3s) - 120s"
+		timerLabel2.Text = "⏱️ Fase: MECH 3s"
+		timerLabel2.TextColor3 = Color3.fromRGB(100, 255, 150)
+		
+		local mechStartTime = tick()
+		local mechCount = 0
+		
+		while farm2Active and (tick() - mechStartTime) < 120 do
+			local elapsed = tick() - mechStartTime
+			local timeLeft = math.max(0, 120 - elapsed)
+			timerLabel2.Text = "⏱️ MECH: " .. math.floor(timeLeft) .. "s"
+			spawnTimeLabel2.Text = "🤖 Mech en 3s"
+			
+			local waited = 0
+			while farm2Active and waited < 3 and (tick() - mechStartTime) < 120 do
+				task.wait(1)
+				waited = waited + 1
+				if (tick() - mechStartTime) < 120 then
+					timerLabel2.Text = "⏱️ MECH: " .. math.floor(120 - (tick() - mechStartTime)) .. "s"
+					spawnTimeLabel2.Text = "🤖 Mech en " .. (3 - waited) .. "s"
+				end
+			end
+			
+			if farm2Active and (tick() - mechStartTime) < 120 then
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Mech Cameraman", mechCFrame2) end)
+				mechCount = mechCount + 1
+				statusLabel2.Text = "🤖 Mech #" .. mechCount
+			end
+		end
+		
+		if not farm2Active then return end
+		
+		-- FASE 3: TITAN
+		statusLabel2.Text = "🗑️ Eliminando Bunnies y Speakerwoman extras..."
+		venderTodosLosBunnies()
+		deleteAllSpeakerwomanExceptOne()
+		statusLabel2.Text = "🗑️ Limpieza completada"
+		task.wait(1)
+		
+		if not farm2Active then return end
+		
+		statusLabel2.Text = "🎬 Fase 3: TITAN CINEMAMAN"
+		timerLabel2.Text = "⏱️ Fase: TITAN"
+		timerLabel2.TextColor3 = Color3.fromRGB(255, 150, 100)
+		
+		local titanCount = 0
+		
+		while farm2Active do
+			spawnTimeLabel2.Text = "🎬 Titan en 30s"
+			timerLabel2.Text = "⏱️ TITAN: INFINITO"
+			
+			local waited = 0
+			while farm2Active and waited < 30 do
+				task.wait(1)
+				waited = waited + 1
+				spawnTimeLabel2.Text = "🎬 Titan en " .. (30 - waited) .. "s"
+			end
+			
+			if farm2Active then
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Titan Cinemaman", titanCFrame2) end)
+				titanCount = titanCount + 1
+				statusLabel2.Text = "🎬 Titan #" .. titanCount
+			end
+		end
+	end)
 end
 
-local statusLabel = Instance.new("TextLabel", mainFrame)
-statusLabel.Size = UDim2.new(0.92, 0, 0, 25)
-statusLabel.Position = UDim2.new(0.04, 0, 0, 120)
-statusLabel.BackgroundTransparency = 1
-statusLabel.TextColor3 = wasActive and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextSize = 12
-statusLabel.Text = wasActive and "▶️ INSANE Activado" or "⏸️ INSANE Inactivo"
-statusLabel.TextXAlignment = Enum.TextXAlignment.Center
+-- =========================
+-- MODO 3: BUNNY + MECH (NUEVO)
+-- =========================
 
-local timerLabel = Instance.new("TextLabel", mainFrame)
-timerLabel.Size = UDim2.new(0.92, 0, 0, 25)
-timerLabel.Position = UDim2.new(0.04, 0, 0, 150)
-timerLabel.BackgroundTransparency = 1
-timerLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
-timerLabel.Font = Enum.Font.Gotham
-timerLabel.TextSize = 12
-timerLabel.Text = "⏱️ INSANE: Inactivo"
-timerLabel.TextXAlignment = Enum.TextXAlignment.Center
+local farmBtn3
+if wasActive3 then
+	farmBtn3 = pageButton(farm2Page, 10, "🤖 Detener Bunny+Mech", Color3.fromRGB(200, 50, 50))
+else
+	farmBtn3 = pageButton(farm2Page, 10, "🐰🤖 Activar Bunny+Mech", Color3.fromRGB(255, 100, 50))
+end
 
-local spawnTimeLabel = Instance.new("TextLabel", mainFrame)
-spawnTimeLabel.Size = UDim2.new(0.92, 0, 0, 25)
-spawnTimeLabel.Position = UDim2.new(0.04, 0, 0, 180)
-spawnTimeLabel.BackgroundTransparency = 1
-spawnTimeLabel.TextColor3 = Color3.fromRGB(180, 180, 255)
-spawnTimeLabel.Font = Enum.Font.Gotham
-spawnTimeLabel.TextSize = 12
-spawnTimeLabel.Text = "🐰 Bunny: 10s"
-spawnTimeLabel.TextXAlignment = Enum.TextXAlignment.Center
+local statusLabel3 = Instance.new("TextLabel", farm2Page)
+statusLabel3.Size = UDim2.new(0.92, 0, 0, 25)
+statusLabel3.Position = UDim2.new(0.04, 0, 0, 60)
+statusLabel3.BackgroundTransparency = 1
+statusLabel3.TextColor3 = wasActive3 and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
+statusLabel3.Font = Enum.Font.Gotham
+statusLabel3.TextSize = 11
+statusLabel3.Text = wasActive3 and "▶️ Bunny+Mech Activado" or "⏸️ Bunny+Mech Inactivo"
+statusLabel3.TextXAlignment = Enum.TextXAlignment.Center
 
-local coordsLabel = Instance.new("TextLabel", mainFrame)
-coordsLabel.Size = UDim2.new(0.92, 0, 0, 40)
-coordsLabel.Position = UDim2.new(0.04, 0, 0, 215)
-coordsLabel.BackgroundTransparency = 1
-coordsLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-coordsLabel.Font = Enum.Font.Gotham
-coordsLabel.TextSize = 10
-coordsLabel.Text = "📍 Bunny Coords: -75.99, 85.83, -93.88"
-coordsLabel.TextWrapped = true
-coordsLabel.TextXAlignment = Enum.TextXAlignment.Center
+local timerLabel3 = Instance.new("TextLabel", farm2Page)
+timerLabel3.Size = UDim2.new(0.92, 0, 0, 25)
+timerLabel3.Position = UDim2.new(0.04, 0, 0, 85)
+timerLabel3.BackgroundTransparency = 1
+timerLabel3.TextColor3 = Color3.fromRGB(255, 200, 0)
+timerLabel3.Font = Enum.Font.Gotham
+timerLabel3.TextSize = 11
+timerLabel3.Text = "⏱️ Modo 3: Inactivo"
+timerLabel3.TextXAlignment = Enum.TextXAlignment.Center
+
+local spawnTimeLabel3 = Instance.new("TextLabel", farm2Page)
+spawnTimeLabel3.Size = UDim2.new(0.92, 0, 0, 25)
+spawnTimeLabel3.Position = UDim2.new(0.04, 0, 0, 110)
+spawnTimeLabel3.BackgroundTransparency = 1
+spawnTimeLabel3.TextColor3 = Color3.fromRGB(180, 180, 255)
+spawnTimeLabel3.Font = Enum.Font.Gotham
+spawnTimeLabel3.TextSize = 11
+spawnTimeLabel3.Text = "🐰 Bunny: 8s | 🤖 Mech: 60s"
+spawnTimeLabel3.TextXAlignment = Enum.TextXAlignment.Center
+
+-- FUNCIÓN FARM 3: BUNNY + MECH
+local function startFarm3()
+	farm3Active = true
+	
+	task.spawn(function()
+		local char = LocalPlayer.Character
+		if char and char:FindFirstChild("HumanoidRootPart") then
+			char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(139.498398, 5.928603, 130.894547))
+			task.wait(0.3)
+			pcall(function() RS.Events.StartElevator:FireServer("Elevator10") end)
+			statusLabel3.Text = "✅ TP Completado"
+			task.wait(2)
+		end
+		
+		if not farm3Active then return end
+		
+		statusLabel3.Text = "▶️ Bunny+Mech Activado"
+		statusLabel3.TextColor3 = Color3.fromRGB(0, 255, 0)
+		
+		-- Coordenadas
+		local bunnyCFrame = CFrame.new(-76.93643951416016, 85.83458709716797, -93.22852325439453, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		local mechCFrame = CFrame.new(-65.35576629638672, 88.77156066894531, -93.34323120117188, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		
+		-- VoteSkip infinito
+		task.spawn(function()
+			while farm3Active do
+				pcall(function() RS.Events.VoteSkip:FireServer() end)
+				task.wait(0.05)
+			end
+		end)
+		
+		-- Mejora automática
+		task.spawn(function()
+			while farm3Active do
+				mejorarUnidad("Large Bunny TV Man")
+				mejorarUnidad("Mech Cameraman")
+				task.wait(0.5)
+			end
+		end)
+		
+		statusLabel3.Text = "🐰 Spawneando Bunny cada 8s..."
+		timerLabel3.Text = "⏱️ Fase: BUNNY + MECH"
+		timerLabel3.TextColor3 = Color3.fromRGB(100, 255, 100)
+		
+		local bunnyCount = 0
+		local mechCount = 0
+		local lastMechTime = tick()
+		
+		while farm3Active do
+			-- Spawn Bunny cada 8 segundos
+			spawnTimeLabel3.Text = "🐰 Bunny en 8s | 🤖 Mech en " .. math.max(0, 60 - (tick() - lastMechTime)) .. "s"
+			timerLabel3.Text = "⏱️ BUNNY: CADA 8s"
+			
+			local waited = 0
+			while farm3Active and waited < 8 do
+				task.wait(1)
+				waited = waited + 1
+				local mechTimeLeft = math.max(0, 60 - (tick() - lastMechTime))
+				spawnTimeLabel3.Text = "🐰 Bunny en " .. (8 - waited) .. "s | 🤖 Mech en " .. math.floor(mechTimeLeft) .. "s"
+			end
+			
+			if farm3Active then
+				-- Spawn Bunny
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame) end)
+				bunnyCount = bunnyCount + 1
+				statusLabel3.Text = "🐰 Bunny #" .. bunnyCount
+				
+				-- Spawn Mech cada 60 segundos
+				if tick() - lastMechTime >= 60 then
+					pcall(function() RS.Functions.SpawnTower:InvokeServer("Mech Cameraman", mechCFrame) end)
+					mechCount = mechCount + 1
+					lastMechTime = tick()
+					statusLabel3.Text = "🐰 Bunny #" .. bunnyCount .. " | 🤖 Mech #" .. mechCount
+				end
+			end
+		end
+	end)
+end
+
+-- =========================
+-- BOTONES AUTOFARM
+-- =========================
 
 farmBtn.MouseButton1Click:Connect(function()
 	farmActive = not farmActive
 	saveState()
 	if farmActive then
-		farmBtn.Text = "🔴 Detener INSANE"
+		farmBtn.Text = "🌾 Detener Farm 1"
 		farmBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-		startFarm()
+		startFarm1()
 	else
-		farmBtn.Text = "🔴 Activar INSANE"
-		farmBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-		statusLabel.Text = "⏸️ INSANE Inactivo"
-		statusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
-		timerLabel.Text = "⏱️ INSANE: Inactivo"
-		spawnTimeLabel.Text = "🐰 Bunny: 10s"
+		farmBtn.Text = "🌾 Activar Farm 1"
+		farmBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+		statusLabel1.Text = "⏸️ Farm 1 Inactivo"
+		statusLabel1.TextColor3 = Color3.fromRGB(255, 255, 0)
+		timerLabel1.Text = "⏱️ Farm 1: Inactivo"
+		spawnTimeLabel1.Text = "🐰 Bunny: 16s"
 	end
 end)
 
-local boostBtn = Instance.new("TextButton", mainFrame)
-boostBtn.Size = UDim2.new(0.92, 0, 0, 40)
-boostBtn.Position = UDim2.new(0.04, 0, 0, 265)
-boostBtn.BackgroundColor3 = Color3.fromRGB(186, 85, 211)
-boostBtn.TextColor3 = Color3.new(1,1,1)
-boostBtn.Font = Enum.Font.GothamBold
-boostBtn.TextSize = 14
-boostBtn.Text = "⚡ Boost FPS"
-boostBtn.BorderSizePixel = 0
-Instance.new("UICorner", boostBtn).CornerRadius = UDim.new(0, 10)
+farmBtn2.MouseButton1Click:Connect(function()
+	farm2Active = not farm2Active
+	saveState2()
+	if farm2Active then
+		farmBtn2.Text = "🌾 Detener Farm 2"
+		farmBtn2.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+		startFarm2()
+	else
+		farmBtn2.Text = "🌾 Activar Farm 2"
+		farmBtn2.BackgroundColor3 = Color3.fromRGB(50, 150, 200)
+		statusLabel2.Text = "⏸️ Farm 2 Inactivo"
+		statusLabel2.TextColor3 = Color3.fromRGB(255, 255, 0)
+		timerLabel2.Text = "⏱️ Farm 2: Inactivo"
+		spawnTimeLabel2.Text = "🐰 Bunny: 11s"
+	end
+end)
+
+farmBtn3.MouseButton1Click:Connect(function()
+	farm3Active = not farm3Active
+	saveState3()
+	if farm3Active then
+		farmBtn3.Text = "🤖 Detener Bunny+Mech"
+		farmBtn3.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+		startFarm3()
+	else
+		farmBtn3.Text = "🐰🤖 Activar Bunny+Mech"
+		farmBtn3.BackgroundColor3 = Color3.fromRGB(255, 100, 50)
+		statusLabel3.Text = "⏸️ Bunny+Mech Inactivo"
+		statusLabel3.TextColor3 = Color3.fromRGB(255, 255, 0)
+		timerLabel3.Text = "⏱️ Modo 3: Inactivo"
+		spawnTimeLabel3.Text = "🐰 Bunny: 8s | 🤖 Mech: 60s"
+	end
+end)
+
+-- =========================
+-- AUTO-INICIO
+-- =========================
+
+if wasActive then
+	farmActive = true
+	task.spawn(function() task.wait(1); startFarm1() end)
+end
+
+if wasActive2 then
+	farm2Active = true
+	task.spawn(function() task.wait(1.5); startFarm2() end)
+end
+
+if wasActive3 then
+	farm3Active = true
+	task.spawn(function() task.wait(2); startFarm3() end)
+end
+
+-- =========================
+-- OPTIMIZAR PAGE
+-- =========================
+
+local boostBtn = pageButton(optimizarPage, 10, "⚡ Boost FPS", Color3.fromRGB(186, 85, 211))
+local rejoinBtn = pageButton(optimizarPage, 70, "🔁 Rejoin", Color3.fromRGB(138, 43, 226))
 
 boostBtn.MouseButton1Click:Connect(function()
 	boostBtn.Text = "⏳ Aplicando..."
@@ -371,9 +918,10 @@ boostBtn.MouseButton1Click:Connect(function()
 	boostBtn.Text = "⚡ Boost FPS"
 end)
 
-if wasActive then
-	farmActive = true
-	task.spawn(function() task.wait(1); startFarm() end)
-end
+rejoinBtn.MouseButton1Click:Connect(function()
+	rejoinBtn.Text = "🔄 Rejoin..."
+	task.wait(0.5)
+	pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
+end)
 
-print("✅ INSANE MODE cargado - Coordenadas Bunny: -75.99, 85.83, -93.88")
+print("✅ Griff Hub v9 cargado correctamente - 3 MODOS DISPONIBLES")
