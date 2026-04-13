@@ -111,6 +111,51 @@ local function loadState2()
 end
 
 -- =========================
+-- FUNCIÓN PARA ACTUALIZAR EL ORO EN LA GUI (CORREGIDO PARA QUE NO DESAPAREZCA AL MORIR)
+-- =========================
+
+local function updateGoldDisplay()
+    local goldValue = LocalPlayer:FindFirstChild("Gold")
+    if goldValue and screenGui and screenGui:FindFirstChild("MainFrame") then
+        local goldLabel = screenGui.MainFrame:FindFirstChild("GoldDisplay")
+        if goldLabel then
+            goldLabel.Text = "💰 $" .. goldValue.Value
+        end
+    end
+end
+
+local function setupGoldConnection()
+    local gold = LocalPlayer:FindFirstChild("Gold")
+    if gold then
+        local connection
+        connection = gold.Changed:Connect(function(newValue)
+            local goldLabel = screenGui:FindFirstChild("MainFrame") and screenGui.MainFrame:FindFirstChild("GoldDisplay")
+            if goldLabel then
+                goldLabel.Text = "💰 $" .. newValue
+            end
+        end)
+        
+        -- Si el oro se destruye (al morir), reconectar
+        gold.AncestryChanged:Connect(function()
+            if not gold.Parent then
+                if connection then connection:Disconnect() end
+                task.wait(0.1)
+                setupGoldConnection()
+            end
+        end)
+        
+        updateGoldDisplay()
+    else
+        -- Esperar a que el oro aparezca
+        LocalPlayer.ChildAdded:Connect(function(child)
+            if child.Name == "Gold" then
+                setupGoldConnection()
+            end
+        end)
+    end
+end
+
+-- =========================
 -- GUI ROOT
 -- =========================
 
@@ -137,6 +182,20 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = false
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+-- AÑADIR DISPLAY DE ORO EN LA GUI
+local goldDisplay = Instance.new("TextLabel", mainFrame)
+goldDisplay.Name = "GoldDisplay"
+goldDisplay.Size = UDim2.new(0, 150, 0, 30)
+goldDisplay.Position = UDim2.new(1, -160, 0, 8)
+goldDisplay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+goldDisplay.BackgroundTransparency = 0.5
+goldDisplay.TextColor3 = Color3.fromRGB(255, 215, 0)
+goldDisplay.Font = Enum.Font.GothamBold
+goldDisplay.TextSize = 14
+goldDisplay.Text = "💰 $0"
+goldDisplay.TextXAlignment = Enum.TextXAlignment.Center
+Instance.new("UICorner", goldDisplay).CornerRadius = UDim.new(0, 6)
 
 toggleBtn.MouseButton1Click:Connect(function()
 	mainFrame.Visible = not mainFrame.Visible
@@ -777,5 +836,10 @@ rejoinBtn.MouseButton1Click:Connect(function()
 	task.wait(0.5)
 	pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
 end)
+
+-- =========================
+-- INICIAR CONEXIÓN DEL ORO
+-- =========================
+setupGoldConnection()
 
 print("✅ Griff Hub v9 cargado - Helicoptero CADA 10 SEGUNDOS | Mech 50s | Sin Speakerwoman")
