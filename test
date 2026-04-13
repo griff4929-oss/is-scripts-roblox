@@ -57,6 +57,8 @@ local farmActive = false
 local farm2Active = false
 local currentWaitTime = 16
 local currentWaitTime2 = 11
+local currentHelicopterWaitTime = 60  -- NUEVA: tiempo para helicoptero
+local minHelicopterWaitTime = 10      -- NUEVA: mínimo 10 segundos
 local minWaitTime = 5
 
 -- =========================
@@ -539,7 +541,7 @@ local function startFarm1()
 end
 
 -- =========================
--- FARM 2 (ORIGINAL pero con TITAN reemplazado por LARGE SPEAKER HELICOPTER)
+-- FARM 2 (CON LARGE SPEAKER HELICOPTER - RÁPIDO: 60s → 10s)
 -- =========================
 
 local function startFarm2()
@@ -564,7 +566,6 @@ local function startFarm2()
 		local bunnyCFrame2 = CFrame.new(29.8349686, 84.2882462, -17.7190742, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 		local speakerwomanCFrame = CFrame.new(-2.3337020874023438, 82.93824768066406, 19.79852294921875, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 		local mechCFrame2 = CFrame.new(7.5827179, 88.5881958, -28.159481, 1, 0, 0, 0, 1, 0, 0, 0, 1)
-		-- CAMBIO: Titan reemplazado por Large Speaker Helicopter
 		local helicopterCFrame = CFrame.new(12.570381164550781, 85.38301086425781, -0.2645606994628906, -4.371138828673793e-08, 0, 1, 0, 1, 0, -1, 0, -4.371138828673793e-08)
 		
 		-- Colocar Scientists
@@ -583,13 +584,13 @@ local function startFarm2()
 			end
 		end)
 		
-		-- Mejora automática (CAMBIO: Titan Cinemaman por Large Speaker Helicopter)
+		-- Mejora automática
 		task.spawn(function()
 			while farm2Active do
 				mejorarUnidad("Large Bunny TV Man")
 				mejorarUnidad("Scientist Cameraman")
 				mejorarUnidad("Mech Cameraman")
-				mejorarUnidad("Large Speaker Helicopter")  -- CAMBIADO
+				mejorarUnidad("Large Speaker Helicopter")
 				mejorarUnidad("Upgraded Speakerwoman")
 				task.wait(0.3)
 			end
@@ -683,28 +684,35 @@ local function startFarm2()
 		
 		if not farm2Active then return end
 		
-		-- ===== FASE 4: LARGE SPEAKER HELICOPTER (antes era TITAN) =====
-		statusLabel2.Text = "🚁 Fase 4: LARGE SPEAKER HELICOPTER"
+		-- ===== FASE 4: LARGE SPEAKER HELICOPTER (60s → 10s) =====
+		statusLabel2.Text = "🚁 Fase 4: LARGE SPEAKER HELICOPTER (RÁPIDO)"
 		timerLabel2.Text = "⏱️ Fase: HELICOPTER"
 		timerLabel2.TextColor3 = Color3.fromRGB(255, 150, 100)
 		
+		currentHelicopterWaitTime = 60  -- Empieza en 60 segundos
 		local helicopterCount = 0
 		
 		while farm2Active do
-			spawnTimeLabel2.Text = "🚁 Helicopter en 30s"
+			spawnTimeLabel2.Text = "🚁 Helicopter en " .. currentHelicopterWaitTime .. "s"
 			timerLabel2.Text = "⏱️ HELICOPTER: INFINITO"
 			
 			local waited = 0
-			while farm2Active and waited < 30 do
+			while farm2Active and waited < currentHelicopterWaitTime do
 				task.wait(1)
 				waited = waited + 1
-				spawnTimeLabel2.Text = "🚁 Helicopter en " .. (30 - waited) .. "s"
+				spawnTimeLabel2.Text = "🚁 Helicopter en " .. (currentHelicopterWaitTime - waited) .. "s"
 			end
 			
 			if farm2Active then
 				pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Speaker Helicopter", helicopterCFrame) end)
 				helicopterCount = helicopterCount + 1
-				statusLabel2.Text = "🚁 Helicopter #" .. helicopterCount
+				statusLabel2.Text = "🚁 Large Speaker Helicopter #" .. helicopterCount
+				
+				-- REDUCCIÓN DEL TIEMPO: 60 → 55 → 50 → ... → 10
+				if currentHelicopterWaitTime > minHelicopterWaitTime then
+					currentHelicopterWaitTime = math.max(minHelicopterWaitTime, currentHelicopterWaitTime - 5)
+				end
+				spawnTimeLabel2.Text = "🚁 Helicopter: " .. currentHelicopterWaitTime .. "s (cada vez más rápido)"
 			end
 		end
 	end)
@@ -789,4 +797,4 @@ rejoinBtn.MouseButton1Click:Connect(function()
 	pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
 end)
 
-print("✅ Griff Hub v9 cargado correctamente - Notificaciones de error BLOQUEADAS")
+print("✅ Griff Hub v9 cargado correctamente - Helicopter RÁPIDO (60s → 10s)")
