@@ -1,5 +1,5 @@
 -- =========================
--- GRIFF HUB v9 - AUTO FARM INFINITO (CON GUI PERSISTENTE)
+-- GRIFF HUB v9 - AUTO FARM INFINITO (CON GUI PERSISTENTE + FIRMA)
 -- =========================
 
 -- 💤 ANTI AFK
@@ -501,18 +501,19 @@ local function crearGUI()
     end)
     
     -- =========================
-    -- FIRMA (CRÉDITOS)
+    -- FIRMA FALSA (FAKE SIGNATURE)
     -- =========================
     
-    local signature = Instance.new("TextLabel", mainFrame)
-    signature.Size = UDim2.new(1, -20, 0, 25)
-    signature.Position = UDim2.new(0, 10, 1, -35)
-    signature.BackgroundTransparency = 1
-    signature.TextColor3 = Color3.fromRGB(128, 128, 128)
-    signature.Font = Enum.Font.Gotham
-    signature.TextSize = 10
-    signature.Text = "⚡ Griff Hub v9 | AutoFarm + Visual Toggles"
-    signature.TextXAlignment = Enum.TextXAlignment.Center
+    local fakeSignature = Instance.new("TextLabel", mainFrame)
+    fakeSignature.Name = "FakeSignature"
+    fakeSignature.Size = UDim2.new(1, -20, 0, 30)
+    fakeSignature.Position = UDim2.new(0, 10, 1, -40)
+    fakeSignature.BackgroundTransparency = 1
+    fakeSignature.TextColor3 = Color3.fromRGB(100, 100, 120)
+    fakeSignature.Font = Enum.Font.Gotham
+    fakeSignature.TextSize = 10
+    fakeSignature.Text = "⚡ Griff Hub v9 | Creado por Griff | Modo Visual"
+    fakeSignature.TextXAlignment = Enum.TextXAlignment.Center
     
     -- =========================
     -- FARM 1
@@ -949,3 +950,4 @@ LocalPlayer.CharacterAdded:Connect(function()
 end)
 
 print("✅ Griff Hub v9 cargado - GUI PERSISTENTE | Sign Frame Toggle | AutoFarms")
+print("✅ Firma agregada en la parte inferior de la GUI")
