@@ -17,6 +17,9 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 local Lighting = game:GetService("Lighting")
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 -- =========================
 -- BLOQUEAR TODAS LAS NOTIFICACIONES DE ERROR
@@ -117,6 +120,11 @@ end
 local screenGui = nil
 local goldDisplay = nil
 
+-- Variables para la página Fun
+local invAutoSellEnabled = false
+local summonAutoSellEnabled = false
+local signEnabled = false
+
 local function crearGUI()
     -- Si ya existe una GUI, destruirla primero para evitar duplicados
     if screenGui and screenGui.Parent then
@@ -125,7 +133,7 @@ local function crearGUI()
     
     screenGui = Instance.new("ScreenGui")
     screenGui.Name = "GriffHubV9"
-    screenGui.ResetOnSpawn = false  -- Esto evita que se destruya al morir
+    screenGui.ResetOnSpawn = false
     screenGui.Parent = CoreGui
     
     -- Asegurar que la GUI nunca se destruya
@@ -143,11 +151,13 @@ local function crearGUI()
     Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 8)
     
     local mainFrame = Instance.new("Frame", screenGui)
-    mainFrame.Size = UDim2.new(0, 400, 0, 560)
+    mainFrame.Size = UDim2.new(0, 450, 0, 600)
     mainFrame.Position = UDim2.new(0.32, 0, 0.15, 0)
     mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,35)
     mainFrame.BorderSizePixel = 0
     mainFrame.Visible = false
+    mainFrame.Active = true
+    mainFrame.Draggable = true
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
     
     -- DISPLAY DE ORO PERSISTENTE (fuera del mainFrame para que siempre se vea)
@@ -208,7 +218,7 @@ local function crearGUI()
     
     local function newTab(name)
         local b = Instance.new("TextButton", tabs)
-        b.Size = UDim2.new(0.42, 0, 1, 0)
+        b.Size = UDim2.new(0.28, 0, 1, 0)
         b.BackgroundColor3 = Color3.fromRGB(50,50,60)
         b.TextColor3 = Color3.new(1,1,1)
         b.Font = Enum.Font.GothamBold
@@ -220,6 +230,7 @@ local function crearGUI()
     end
     
     local farmTab = newTab("🌾 AutoFarm")
+    local funTab = newTab("🎮 Fun")
     local optimizarTab = newTab("⚡ Optimizar")
     
     local function newPage()
@@ -233,16 +244,25 @@ local function crearGUI()
     end
     
     local farmPage = newPage()
+    local funPage = newPage()
     local optimizarPage = newPage()
     farmPage.Visible = true
     
     farmTab.MouseButton1Click:Connect(function()
         farmPage.Visible = true
+        funPage.Visible = false
+        optimizarPage.Visible = false
+    end)
+    
+    funTab.MouseButton1Click:Connect(function()
+        farmPage.Visible = false
+        funPage.Visible = true
         optimizarPage.Visible = false
     end)
     
     optimizarTab.MouseButton1Click:Connect(function()
         farmPage.Visible = false
+        funPage.Visible = false
         optimizarPage.Visible = true
     end)
     
@@ -296,33 +316,6 @@ local function crearGUI()
             end
         end
         return count
-    end
-    
-    -- =========================
-    -- FUNCIÓN ELIMINAR TODAS LAS SPEAKERWOMAN EXCEPTO UNA
-    -- =========================
-    
-    local function deleteAllSpeakerwomanExceptOne()
-        local sellTower = RS.Events:FindFirstChild("SellTower") or RS.Functions:FindFirstChild("SellTower")
-        if not sellTower then return end
-        
-        local towers = WS:FindFirstChild("Towers")
-        if not towers then return end
-        
-        local keepOne = true
-        for _, tower in pairs(towers:GetChildren()) do
-            local config = tower:FindFirstChild("Config")
-            if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
-                local tName = config:FindFirstChild("TowerName")
-                if tName and tName.Value == "Upgraded Speakerwoman" then
-                    if keepOne then
-                        keepOne = false
-                    else
-                        pcall(function() sellTower:InvokeServer(tower) end)
-                    end
-                end
-            end
-        end
     end
     
     -- =========================
@@ -460,6 +453,80 @@ local function crearGUI()
     spawnTimeLabel2.TextSize = 11
     spawnTimeLabel2.Text = "🐰 Bunny: 11s"
     spawnTimeLabel2.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- =========================
+    -- 🎮 FUN PAGE
+    -- =========================
+    
+    -- Crear botones para la página Fun
+    local funInvBtn = pageButton(funPage, 10, "🎒 Toggle Inventory AutoSell", Color3.fromRGB(186, 85, 211))
+    local funSummonBtn = pageButton(funPage, 65, "🔮 Toggle Summon AutoSell", Color3.fromRGB(186, 85, 211))
+    local funSignBtn = pageButton(funPage, 120, "📜 Toggle Sign Frame", Color3.fromRGB(186, 85, 211))
+    
+    -- Estados de los botones Fun
+    local invStatus = Instance.new("TextLabel", funPage)
+    invStatus.Size = UDim2.new(0.92, 0, 0, 25)
+    invStatus.Position = UDim2.new(0.04, 0, 0, 160)
+    invStatus.BackgroundTransparency = 1
+    invStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+    invStatus.Font = Enum.Font.Gotham
+    invStatus.TextSize = 11
+    invStatus.Text = "🎒 Inventory AutoSell: ❌ OFF"
+    invStatus.TextXAlignment = Enum.TextXAlignment.Center
+    
+    local summonStatus = Instance.new("TextLabel", funPage)
+    summonStatus.Size = UDim2.new(0.92, 0, 0, 25)
+    summonStatus.Position = UDim2.new(0.04, 0, 0, 185)
+    summonStatus.BackgroundTransparency = 1
+    summonStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+    summonStatus.Font = Enum.Font.Gotham
+    summonStatus.TextSize = 11
+    summonStatus.Text = "🔮 Summon AutoSell: ❌ OFF"
+    summonStatus.TextXAlignment = Enum.TextXAlignment.Center
+    
+    local signStatus = Instance.new("TextLabel", funPage)
+    signStatus.Size = UDim2.new(0.92, 0, 0, 25)
+    signStatus.Position = UDim2.new(0.04, 0, 0, 210)
+    signStatus.BackgroundTransparency = 1
+    signStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+    signStatus.Font = Enum.Font.Gotham
+    signStatus.TextSize = 11
+    signStatus.Text = "📜 Sign Frame: ❌ OFF"
+    signStatus.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- Funciones de los botones Fun
+    funInvBtn.MouseButton1Click:Connect(function()
+        invAutoSellEnabled = not invAutoSellEnabled
+        if invAutoSellEnabled then
+            invStatus.Text = "🎒 Inventory AutoSell: ✅ ON"
+            invStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
+        else
+            invStatus.Text = "🎒 Inventory AutoSell: ❌ OFF"
+            invStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+        end
+    end)
+    
+    funSummonBtn.MouseButton1Click:Connect(function()
+        summonAutoSellEnabled = not summonAutoSellEnabled
+        if summonAutoSellEnabled then
+            summonStatus.Text = "🔮 Summon AutoSell: ✅ ON"
+            summonStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
+        else
+            summonStatus.Text = "🔮 Summon AutoSell: ❌ OFF"
+            summonStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+        end
+    end)
+    
+    funSignBtn.MouseButton1Click:Connect(function()
+        signEnabled = not signEnabled
+        if signEnabled then
+            signStatus.Text = "📜 Sign Frame: ✅ ON"
+            signStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
+        else
+            signStatus.Text = "📜 Sign Frame: ❌ OFF"
+            signStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+        end
+    end)
     
     -- =========================
     -- FARM 1
@@ -866,6 +933,28 @@ local function updateGoldValue()
 end
 
 -- =========================
+-- FUNCIÓN DE ACTUALIZACIÓN PARA FUN PAGE (AutoSell y Sign)
+-- =========================
+
+RunService.RenderStepped:Connect(function()
+    -- Inventory AutoSell
+    local inventory = PlayerGui:FindFirstChild("Inventory", true)
+    if inventory then
+        local autoSell = inventory:FindFirstChild("AutoSellFrame", true)
+        local signFrame = inventory:FindFirstChild("Sign", true)
+        if autoSell then autoSell.Visible = invAutoSellEnabled end
+        if signFrame then signFrame.Visible = signEnabled end
+    end
+    
+    -- Summon AutoSell
+    local summon = PlayerGui:FindFirstChild("Summon", true)
+    if summon then
+        local autoSell = summon:FindFirstChild("AutoSellFrame", true)
+        if autoSell then autoSell.Visible = summonAutoSellEnabled end
+    end
+end)
+
+-- =========================
 -- INICIAR TODO
 -- =========================
 
@@ -883,3 +972,4 @@ LocalPlayer.CharacterAdded:Connect(function()
 end)
 
 print("✅ Griff Hub v9 cargado - GUI PERSISTENTE | El oro NO desaparece al morir")
+print("✅ Nueva página FUN agregada con AutoSell y Sign Frame toggles")
