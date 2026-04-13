@@ -344,17 +344,6 @@ local function venderTodosLosBunnies()
 end
 
 -- =========================
--- FUNCIÓN SPAWNEAR SPEAKERWOMAN
--- =========================
-
-local function spawnSpeakerwoman()
-	local speakerwomanCFrame = CFrame.new(-2.3337020874023438, 82.93824768066406, 19.79852294921875, 1, 0, 0, 0, 1, 0, 0, 0, 1)
-	pcall(function()
-		RS.Functions.SpawnTower:InvokeServer("Upgraded Speakerwoman", speakerwomanCFrame)
-	end)
-end
-
--- =========================
 -- 🌾 AUTOFARM PAGE - BOTÓN 1
 -- =========================
 
@@ -440,7 +429,7 @@ spawnTimeLabel2.Text = "🐰 Bunny: 11s"
 spawnTimeLabel2.TextXAlignment = Enum.TextXAlignment.Center
 
 -- =========================
--- FARM 1 (SIN CAMBIOS)
+-- FARM 1
 -- =========================
 
 local function startFarm1()
@@ -550,7 +539,7 @@ local function startFarm1()
 end
 
 -- =========================
--- FARM 2 - CON LARGE SPEAKER HELICOPTER (REEMPLAZA TITAN)
+-- FARM 2 - CON DOS SPEAKERWOMAN EN FASE 2
 -- =========================
 
 local function startFarm2()
@@ -573,9 +562,10 @@ local function startFarm2()
 		
 		local scientistCFrame = CFrame.new(41.5543137, 82.593399, -44.0053787, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 		local bunnyCFrame2 = CFrame.new(29.8349686, 84.2882462, -17.7190742, 1, 0, 0, 0, 1, 0, 0, 0, 1)
-		local speakerwomanCFrame = CFrame.new(-2.3337020874023438, 82.93824768066406, 19.79852294921875, 1, 0, 0, 0, 1, 0, 0, 0, 1)
-		local mechCFrame2 = CFrame.new(7.5827179, 88.5881958, -28.159481, 1, 0, 0, 0, 1, 0, 0, 0, 1)
-		-- NUEVO CFrame para Large Speaker Helicopter
+		-- Posición ANTIGUA de Speakerwoman
+		local speakerwomanAntiguaCFrame = CFrame.new(-2.3337020874023438, 82.93824768066406, 19.79852294921875, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		-- Posición NUEVA de Speakerwoman
+		local speakerwomanNuevaCFrame = CFrame.new(16.866195678710938, 82.93824768066406, -14.148326873779297, -4.371138828673793e-08, 0, 1, 0, 1, 0, -1, 0, -4.371138828673793e-08)
 		local helicopterCFrame = CFrame.new(12.570381164550781, 85.38301086425781, -0.2645606994628906, -4.371138828673793e-08, 0, 1, 0, 1, 0, -1, 0, -4.371138828673793e-08)
 		
 		-- Colocar Scientists
@@ -599,14 +589,13 @@ local function startFarm2()
 			while farm2Active do
 				mejorarUnidad("Large Bunny TV Man")
 				mejorarUnidad("Scientist Cameraman")
-				mejorarUnidad("Mech Cameraman")
-				mejorarUnidad("Large Speaker Helicopter")  -- AÑADIDO
 				mejorarUnidad("Upgraded Speakerwoman")
+				mejorarUnidad("Large Speaker Helicopter")
 				task.wait(0.3)
 			end
 		end)
 		
-		-- ===== FASE 1: BUNNY + SPEAKERWOMAN INFINITA (60 segundos) =====
+		-- ===== FASE 1: BUNNY + SPEAKERWOMAN ANTIGUA (60 segundos) =====
 		statusLabel2.Text = "🐰 Fase 1: BUNNY + SPEAKERWOMAN"
 		timerLabel2.Text = "⏱️ Fase: BUNNY"
 		timerLabel2.TextColor3 = Color3.fromRGB(255, 200, 0)
@@ -637,8 +626,8 @@ local function startFarm2()
 				pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame2) end)
 				bunnyCount = bunnyCount + 1
 				
-				-- Spawnear Speakerwoman (infinito)
-				pcall(function() RS.Functions.SpawnTower:InvokeServer("Upgraded Speakerwoman", speakerwomanCFrame) end)
+				-- Spawnear Speakerwoman (posición ANTIGUA)
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Upgraded Speakerwoman", speakerwomanAntiguaCFrame) end)
 				speakerwomanCount = speakerwomanCount + 1
 				
 				statusLabel2.Text = "🐰 Bunny #" .. bunnyCount .. " | 📢 Speakerwoman #" .. speakerwomanCount
@@ -652,40 +641,43 @@ local function startFarm2()
 		
 		if not farm2Active then return end
 		
-		-- ===== FASE 2: MECH CADA 3 SEGUNDOS (120 SEGUNDOS) =====
-		statusLabel2.Text = "🤖 Fase 2: MECH (cada 3s) - 120s"
-		timerLabel2.Text = "⏱️ Fase: MECH 3s"
-		timerLabel2.TextColor3 = Color3.fromRGB(100, 255, 150)
+		-- ===== FASE 2: DOS SPEAKERWOMAN (NUEVA + ANTIGUA) cada 3 segundos (120 SEGUNDOS) =====
+		statusLabel2.Text = "📢📢 Fase 2: DOS SPEAKERWOMAN (Nueva + Antigua)"
+		timerLabel2.Text = "⏱️ Fase: 2x SPEAKERWOMAN"
+		timerLabel2.TextColor3 = Color3.fromRGB(100, 200, 255)
 		
-		local mechStartTime = tick()
-		local mechCount = 0
+		local speakerwoman2StartTime = tick()
+		local speakerwoman2Count = 0
 		
-		while farm2Active and (tick() - mechStartTime) < 120 do
-			local elapsed = tick() - mechStartTime
+		while farm2Active and (tick() - speakerwoman2StartTime) < 120 do
+			local elapsed = tick() - speakerwoman2StartTime
 			local timeLeft = math.max(0, 120 - elapsed)
-			timerLabel2.Text = "⏱️ MECH: " .. math.floor(timeLeft) .. "s"
-			spawnTimeLabel2.Text = "🤖 Mech en 3s"
+			timerLabel2.Text = "⏱️ 2x SPEAKER: " .. math.floor(timeLeft) .. "s"
+			spawnTimeLabel2.Text = "📢📢 Dos Speakerwoman en 3s"
 			
 			local waited = 0
-			while farm2Active and waited < 3 and (tick() - mechStartTime) < 120 do
+			while farm2Active and waited < 3 and (tick() - speakerwoman2StartTime) < 120 do
 				task.wait(1)
 				waited = waited + 1
-				if (tick() - mechStartTime) < 120 then
-					timerLabel2.Text = "⏱️ MECH: " .. math.floor(120 - (tick() - mechStartTime)) .. "s"
-					spawnTimeLabel2.Text = "🤖 Mech en " .. (3 - waited) .. "s"
+				if (tick() - speakerwoman2StartTime) < 120 then
+					timerLabel2.Text = "⏱️ 2x SPEAKER: " .. math.floor(120 - (tick() - speakerwoman2StartTime)) .. "s"
+					spawnTimeLabel2.Text = "📢📢 Dos Speakerwoman en " .. (3 - waited) .. "s"
 				end
 			end
 			
-			if farm2Active and (tick() - mechStartTime) < 120 then
-				pcall(function() RS.Functions.SpawnTower:InvokeServer("Mech Cameraman", mechCFrame2) end)
-				mechCount = mechCount + 1
-				statusLabel2.Text = "🤖 Mech #" .. mechCount
+			if farm2Active and (tick() - speakerwoman2StartTime) < 120 then
+				-- Spawnear Speakerwoman en posición NUEVA
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Upgraded Speakerwoman", speakerwomanNuevaCFrame) end)
+				-- Spawnear Speakerwoman en posición ANTIGUA
+				pcall(function() RS.Functions.SpawnTower:InvokeServer("Upgraded Speakerwoman", speakerwomanAntiguaCFrame) end)
+				speakerwoman2Count = speakerwoman2Count + 2
+				statusLabel2.Text = "📢📢 Speakerwoman #" .. speakerwoman2Count
 			end
 		end
 		
 		if not farm2Active then return end
 		
-		-- ===== FASE 3: LARGE SPEAKER HELICOPTER EN LUGAR DE TITAN =====
+		-- ===== FASE 3: ELIMINAR BUNNIES Y SPEAKERWOMAN EXTRAS =====
 		statusLabel2.Text = "🗑️ Eliminando Bunnies y Speakerwoman extras..."
 		venderTodosLosBunnies()
 		deleteAllSpeakerwomanExceptOne()
@@ -694,9 +686,10 @@ local function startFarm2()
 		
 		if not farm2Active then return end
 		
-		statusLabel2.Text = "🚁 Fase 3: LARGE SPEAKER HELICOPTER"
+		-- ===== FASE 4: LARGE SPEAKER HELICOPTER =====
+		statusLabel2.Text = "🚁 Fase 4: LARGE SPEAKER HELICOPTER"
 		timerLabel2.Text = "⏱️ Fase: HELICOPTER"
-		timerLabel2.TextColor3 = Color3.fromRGB(100, 200, 255)
+		timerLabel2.TextColor3 = Color3.fromRGB(255, 150, 100)
 		
 		local helicopterCount = 0
 		
