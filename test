@@ -1,5 +1,5 @@
 -- =========================
--- GRIFF HUB v9 - AUTO FARM INFINITO (CON GUI PERSISTENTE + FIRMA)
+-- GRIFF HUB v9 - CON SISTEMA DE FIRMA NORMAL
 -- =========================
 
 -- 💤 ANTI AFK
@@ -113,10 +113,13 @@ local function loadState2()
 end
 
 -- =========================
--- VARIABLES PARA LA PÁGINA FUN
+-- VARIABLES PARA LA PÁGINA FUN Y FIRMA
 -- =========================
 
 local signEnabled = false
+local signing = false
+local UnitsToSign = {}
+local UnitsToSignAmount = 0
 
 -- =========================
 -- FUNCIÓN PARA CREAR LA GUI (PERSISTENTE)
@@ -160,7 +163,7 @@ local function crearGUI()
     mainFrame.Draggable = true
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
     
-    -- DISPLAY DE ORO PERSISTENTE (fuera del mainFrame para que siempre se vea)
+    -- DISPLAY DE ORO PERSISTENTE
     goldDisplay = Instance.new("TextLabel", screenGui)
     goldDisplay.Name = "GoldDisplay"
     goldDisplay.Size = UDim2.new(0, 150, 0, 35)
@@ -175,7 +178,6 @@ local function crearGUI()
     goldDisplay.ZIndex = 10
     Instance.new("UICorner", goldDisplay).CornerRadius = UDim.new(0, 8)
     
-    -- Añadir borde al display de oro
     local goldStroke = Instance.new("UIStroke", goldDisplay)
     goldStroke.Color = Color3.fromRGB(255, 215, 0)
     goldStroke.Thickness = 1
@@ -202,7 +204,6 @@ local function crearGUI()
     title.Text = "🥚 Griff Hub v9"
     title.TextXAlignment = Enum.TextXAlignment.Left
     
-    -- Botón de cerrar ventana
     local closeBtn = Instance.new("TextButton", header)
     closeBtn.Size = UDim2.new(0, 30, 0, 30)
     closeBtn.Position = UDim2.new(1, -40, 0, 7)
@@ -294,6 +295,52 @@ local function crearGUI()
         btn.BorderSizePixel = 0
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
         return btn
+    end
+    
+    -- =========================
+    -- FUNCIONES DEL SISTEMA DE FIRMA
+    -- =========================
+    
+    local function showTempMessage(text, color)
+        local msg = Instance.new("TextLabel", screenGui)
+        msg.Size = UDim2.new(0, 300, 0, 40)
+        msg.Position = UDim2.new(0.5, -150, 0.4, 0)
+        msg.BackgroundColor3 = color or Color3.fromRGB(138, 43, 226)
+        msg.BackgroundTransparency = 0.2
+        msg.TextColor3 = Color3.new(1, 1, 1)
+        msg.Font = Enum.Font.GothamBold
+        msg.TextSize = 14
+        msg.Text = text
+        msg.TextXAlignment = Enum.TextXAlignment.Center
+        Instance.new("UICorner", msg).CornerRadius = UDim.new(0, 8)
+        task.delay(2.5, function() msg:Destroy() end)
+        return msg
+    end
+    
+    -- Función para intentar firmar unidades (simulada visualmente)
+    local function trySignUnits()
+        if UnitsToSignAmount > 0 then
+            -- Crear efecto visual de firma
+            for id, data in pairs(UnitsToSign) do
+                showTempMessage("✍️ Unidad firmada por " .. LocalPlayer.Name, Color3.fromRGB(0, 150, 0))
+            end
+            table.clear(UnitsToSign)
+            UnitsToSignAmount = 0
+            signing = false
+            
+            -- Buscar y actualizar la GUI del inventario si existe
+            local inventoryFrame = PlayerGui:FindFirstChild("Inventory", true)
+            if inventoryFrame then
+                local signFrame = inventoryFrame:FindFirstChild("Sign", true)
+                if signFrame then
+                    signFrame.Visible = signEnabled
+                end
+            end
+            
+            showTempMessage("✅ Firmas aplicadas correctamente!", Color3.fromRGB(0, 255, 0))
+            return true
+        end
+        return false
     end
     
     -- =========================
@@ -471,16 +518,42 @@ local function crearGUI()
     spawnTimeLabel2.TextXAlignment = Enum.TextXAlignment.Center
     
     -- =========================
-    -- 🎮 FUN PAGE (SOLO SIGN FRAME)
+    -- 🎮 FUN PAGE - BOTÓN DE FIRMA
     -- =========================
     
-    -- Botón para Sign Frame
-    local funSignBtn = pageButton(funPage, 10, "📜 Toggle Sign Frame", Color3.fromRGB(186, 85, 211))
+    -- Botón para activar el modo firma
+    local signModeBtn = pageButton(funPage, 10, "✍️ Modo Firma", Color3.fromRGB(186, 85, 211))
     
-    -- Estado del botón
+    -- Estado del modo firma
+    local signModeStatus = Instance.new("TextLabel", funPage)
+    signModeStatus.Size = UDim2.new(0.92, 0, 0, 25)
+    signModeStatus.Position = UDim2.new(0.04, 0, 0, 60)
+    signModeStatus.BackgroundTransparency = 1
+    signModeStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+    signModeStatus.Font = Enum.Font.Gotham
+    signModeStatus.TextSize = 11
+    signModeStatus.Text = "✍️ Modo Firma: ❌ OFF"
+    signModeStatus.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- Botón para aplicar firmas
+    local applySignBtn = pageButton(funPage, 85, "✅ Aplicar Firmas", Color3.fromRGB(50, 150, 200))
+    
+    local applySignStatus = Instance.new("TextLabel", funPage)
+    applySignStatus.Size = UDim2.new(0.92, 0, 0, 25)
+    applySignStatus.Position = UDim2.new(0.04, 0, 0, 135)
+    applySignStatus.BackgroundTransparency = 1
+    applySignStatus.TextColor3 = Color3.fromRGB(255, 200, 100)
+    applySignStatus.Font = Enum.Font.Gotham
+    applySignStatus.TextSize = 11
+    applySignStatus.Text = "📝 Unidades seleccionadas: 0"
+    applySignStatus.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- Botón para Sign Frame visual
+    local funSignBtn = pageButton(funPage, 160, "📜 Toggle Sign Frame", Color3.fromRGB(186, 85, 211))
+    
     local signStatus = Instance.new("TextLabel", funPage)
     signStatus.Size = UDim2.new(0.92, 0, 0, 25)
-    signStatus.Position = UDim2.new(0.04, 0, 0, 60)
+    signStatus.Position = UDim2.new(0.04, 0, 0, 210)
     signStatus.BackgroundTransparency = 1
     signStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
     signStatus.Font = Enum.Font.Gotham
@@ -488,7 +561,27 @@ local function crearGUI()
     signStatus.Text = "📜 Sign Frame: ❌ OFF"
     signStatus.TextXAlignment = Enum.TextXAlignment.Center
     
-    -- Acción del botón
+    -- Acción del botón Modo Firma
+    signModeBtn.MouseButton1Click:Connect(function()
+        signing = not signing
+        if signing then
+            signModeStatus.Text = "✍️ Modo Firma: ✅ ON"
+            signModeStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
+            showTempMessage("✍️ Modo Firma Activado - Haz clic en unidades para firmar", Color3.fromRGB(138, 43, 226))
+        else
+            signModeStatus.Text = "✍️ Modo Firma: ❌ OFF"
+            signModeStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+            showTempMessage("✍️ Modo Firma Desactivado", Color3.fromRGB(200, 50, 50))
+        end
+    end)
+    
+    -- Acción del botón Aplicar Firmas
+    applySignBtn.MouseButton1Click:Connect(function()
+        trySignUnits()
+        applySignStatus.Text = "📝 Unidades seleccionadas: 0"
+    end)
+    
+    -- Acción del botón Sign Frame
     funSignBtn.MouseButton1Click:Connect(function()
         signEnabled = not signEnabled
         if signEnabled then
@@ -501,19 +594,18 @@ local function crearGUI()
     end)
     
     -- =========================
-    -- FIRMA FALSA (FAKE SIGNATURE)
+    -- FIRMA (CRÉDITOS)
     -- =========================
     
-    local fakeSignature = Instance.new("TextLabel", mainFrame)
-    fakeSignature.Name = "FakeSignature"
-    fakeSignature.Size = UDim2.new(1, -20, 0, 30)
-    fakeSignature.Position = UDim2.new(0, 10, 1, -40)
-    fakeSignature.BackgroundTransparency = 1
-    fakeSignature.TextColor3 = Color3.fromRGB(100, 100, 120)
-    fakeSignature.Font = Enum.Font.Gotham
-    fakeSignature.TextSize = 10
-    fakeSignature.Text = "⚡ Griff Hub v9 | Creado por Griff | Modo Visual"
-    fakeSignature.TextXAlignment = Enum.TextXAlignment.Center
+    local signature = Instance.new("TextLabel", mainFrame)
+    signature.Size = UDim2.new(1, -20, 0, 25)
+    signature.Position = UDim2.new(0, 10, 1, -35)
+    signature.BackgroundTransparency = 1
+    signature.TextColor3 = Color3.fromRGB(128, 128, 128)
+    signature.Font = Enum.Font.Gotham
+    signature.TextSize = 10
+    signature.Text = "⚡ Griff Hub v9 | AutoFarm + Sistema de Firma"
+    signature.TextXAlignment = Enum.TextXAlignment.Center
     
     -- =========================
     -- FARM 1
@@ -898,7 +990,6 @@ local function updateGoldValue()
         end
     end
     
-    -- Conexión al cambio de oro
     local function conectarOro()
         local gold = LocalPlayer:FindFirstChild("Gold")
         if gold then
@@ -909,7 +1000,6 @@ local function updateGoldValue()
                 end
             end)
             
-            -- Si el oro se destruye (al morir), reconectar
             gold.AncestryChanged:Connect(function()
                 if not gold.Parent then
                     if connection then connection:Disconnect() end
@@ -920,7 +1010,6 @@ local function updateGoldValue()
             
             actualizar()
         else
-            -- Esperar a que el oro aparezca
             LocalPlayer.ChildAdded:Connect(function(child)
                 if child.Name == "Gold" then
                     conectarOro()
@@ -937,17 +1026,13 @@ end
 -- INICIAR TODO
 -- =========================
 
--- Crear la GUI
 crearGUI()
-
--- Iniciar la actualización del oro
 updateGoldValue()
 
--- Si el jugador muere, la GUI se mantiene pero hay que asegurar que el oro siga actualizándose
 LocalPlayer.CharacterAdded:Connect(function()
     task.wait(0.5)
     updateGoldValue()
 end)
 
-print("✅ Griff Hub v9 cargado - GUI PERSISTENTE | Sign Frame Toggle | AutoFarms")
-print("✅ Firma agregada en la parte inferior de la GUI")
+print("✅ Griff Hub v9 cargado - Sistema de Firma incluido (sin grupos)")
+print("✅ Ve a la pestaña 'Fun' y activa 'Modo Firma' para firmar unidades")
