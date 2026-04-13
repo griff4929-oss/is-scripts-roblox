@@ -1,217 +1,951 @@
 -- =========================
--- GRIFF HUB - FUN PAGE (SOLO VISUAL)
+-- GRIFF HUB v9 - AUTO FARM INFINITO (CON GUI PERSISTENTE)
 -- =========================
 
--- Servicios
+-- 💤 ANTI AFK
+local vu = game:GetService("VirtualUser")
+game:GetService("Players").LocalPlayer.Idled:Connect(function()
+	vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+	task.wait(1)
+	vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
+
+-- SERVICIOS
+local RS = game:GetService("ReplicatedStorage")
+local WS = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local CoreGui = game:GetService("CoreGui")
+local Lighting = game:GetService("Lighting")
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local RunService = game:GetService("RunService")
 
 -- =========================
--- CREAR GUI
+-- BLOQUEAR TODAS LAS NOTIFICACIONES DE ERROR
 -- =========================
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "GriffHub"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = CoreGui
+local TextEvent = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("TextEvent")
 
--- Botón toggle (abrir/cerrar)
-local toggleBtn = Instance.new("TextButton", screenGui)
-toggleBtn.Size = UDim2.new(0, 100, 0, 40)
-toggleBtn.Position = UDim2.new(0, 20, 0.15, 0)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 14
-toggleBtn.Text = "🥚 Griff Hub"
-toggleBtn.BorderSizePixel = 0
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 8)
-
--- Frame principal
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 300, 0, 400)
-mainFrame.Position = UDim2.new(0.35, 0, 0.2, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-mainFrame.BorderSizePixel = 0
-mainFrame.Visible = false
-mainFrame.Active = true
-mainFrame.Draggable = true
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
-
--- Header
-local header = Instance.new("Frame", mainFrame)
-header.Size = UDim2.new(1, 0, 0, 44)
-header.Position = UDim2.new(0, 0, 0, 0)
-header.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
-header.BorderSizePixel = 0
-Instance.new("UICorner", header).CornerRadius = UDim.new(0, 12)
-
-local title = Instance.new("TextLabel", header)
-title.Size = UDim2.new(1, -20, 1, 0)
-title.Position = UDim2.new(0, 10, 0, 0)
-title.BackgroundTransparency = 1
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
-title.Text = "🥚 Griff Hub"
-title.TextXAlignment = Enum.TextXAlignment.Left
-
--- Botón de cerrar
-local closeBtn = Instance.new("TextButton", header)
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -35, 0, 7)
-closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 14
-closeBtn.Text = "X"
-closeBtn.BorderSizePixel = 0
-Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
-
-closeBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = false
-end)
-
-toggleBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-end)
-
--- =========================
--- FUN PAGE
--- =========================
-
--- Variables de estado
-local invAutoSellEnabled = false
-local summonAutoSellEnabled = false
-local signEnabled = false
-
--- Frame para los botones
-local buttonsFrame = Instance.new("Frame", mainFrame)
-buttonsFrame.Size = UDim2.new(1, -20, 1, -60)
-buttonsFrame.Position = UDim2.new(0, 10, 0, 55)
-buttonsFrame.BackgroundTransparency = 1
-
--- Función para crear botones
-local function createButton(yPos, text, color)
-    local btn = Instance.new("TextButton", buttonsFrame)
-    btn.Size = UDim2.new(1, 0, 0, 45)
-    btn.Position = UDim2.new(0, 0, 0, yPos)
-    btn.BackgroundColor3 = color
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
-    btn.Text = text
-    btn.BorderSizePixel = 0
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    return btn
-end
-
--- Función para crear labels de estado
-local function createStatusLabel(yPos)
-    local label = Instance.new("TextLabel", buttonsFrame)
-    label.Size = UDim2.new(1, 0, 0, 25)
-    label.Position = UDim2.new(0, 0, 0, yPos)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255, 255, 0)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 11
-    label.Text = ""
-    label.TextXAlignment = Enum.TextXAlignment.Center
-    return label
-end
-
--- Botón 1: Inventory AutoSell
-local invBtn = createButton(10, "🎒 Toggle Inventory AutoSell", Color3.fromRGB(186, 85, 211))
-local invStatus = createStatusLabel(60)
-invStatus.Text = "🎒 Inventory AutoSell: ❌ OFF"
-
--- Botón 2: Summon AutoSell
-local summonBtn = createButton(85, "🔮 Toggle Summon AutoSell", Color3.fromRGB(186, 85, 211))
-local summonStatus = createStatusLabel(135)
-summonStatus.Text = "🔮 Summon AutoSell: ❌ OFF"
-
--- Botón 3: Sign Frame
-local signBtn = createButton(160, "📜 Toggle Sign Frame", Color3.fromRGB(186, 85, 211))
-local signStatus = createStatusLabel(210)
-signStatus.Text = "📜 Sign Frame: ❌ OFF"
-
--- Acciones de los botones
-invBtn.MouseButton1Click:Connect(function()
-    invAutoSellEnabled = not invAutoSellEnabled
-    if invAutoSellEnabled then
-        invStatus.Text = "🎒 Inventory AutoSell: ✅ ON"
-        invStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
-    else
-        invStatus.Text = "🎒 Inventory AutoSell: ❌ OFF"
-        invStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
-    end
-end)
-
-summonBtn.MouseButton1Click:Connect(function()
-    summonAutoSellEnabled = not summonAutoSellEnabled
-    if summonAutoSellEnabled then
-        summonStatus.Text = "🔮 Summon AutoSell: ✅ ON"
-        summonStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
-    else
-        summonStatus.Text = "🔮 Summon AutoSell: ❌ OFF"
-        summonStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
-    end
-end)
-
-signBtn.MouseButton1Click:Connect(function()
-    signEnabled = not signEnabled
-    if signEnabled then
-        signStatus.Text = "📜 Sign Frame: ✅ ON"
-        signStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
-    else
-        signStatus.Text = "📜 Sign Frame: ❌ OFF"
-        signStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
-    end
-end)
-
--- =========================
--- FIRMA (CRÉDITOS)
--- =========================
-
-local signature = Instance.new("TextLabel", mainFrame)
-signature.Size = UDim2.new(1, -20, 0, 25)
-signature.Position = UDim2.new(0, 10, 1, -35)
-signature.BackgroundTransparency = 1
-signature.TextColor3 = Color3.fromRGB(128, 128, 128)
-signature.Font = Enum.Font.Gotham
-signature.TextSize = 10
-signature.Text = "⚡ Griff Hub | Visual Toggles"
-signature.TextXAlignment = Enum.TextXAlignment.Center
-
--- =========================
--- FUNCIÓN DE ACTUALIZACIÓN (AutoSell y Sign)
--- =========================
-
-RunService.RenderStepped:Connect(function()
-    -- Inventory AutoSell
-    local inventory = PlayerGui:FindFirstChild("Inventory", true)
-    if inventory then
-        local autoSell = inventory:FindFirstChild("AutoSellFrame", true)
-        local signFrame = inventory:FindFirstChild("Sign", true)
-        if autoSell then 
-            autoSell.Visible = invAutoSellEnabled 
-        end
-        if signFrame then 
-            signFrame.Visible = signEnabled 
+local function blockAllErrorNotifications()
+    if not TextEvent then return end
+    
+    local success, connections = pcall(function()
+        return getconnections(TextEvent.OnClientEvent)
+    end)
+    
+    if success and connections then
+        for _, conn in ipairs(connections) do
+            pcall(function() conn:Disable() end)
         end
     end
     
-    -- Summon AutoSell
-    local summon = PlayerGui:FindFirstChild("Summon", true)
-    if summon then
-        local autoSell = summon:FindFirstChild("AutoSellFrame", true)
-        if autoSell then 
-            autoSell.Visible = summonAutoSellEnabled 
+    local oldEvent = TextEvent.OnClientEvent
+    TextEvent.OnClientEvent = Instance.new("BindableEvent").Event
+    
+    TextEvent.OnClientEvent:Connect(function(typ, text)
+        if typ == "Error" then
+            return
+        end
+        if oldEvent then
+            oldEvent(typ, text)
+        end
+    end)
+end
+
+pcall(blockAllErrorNotifications)
+
+-- VARIABLES GLOBALES
+local farmActive = false
+local farm2Active = false
+local currentWaitTime = 16
+local currentWaitTime2 = 11
+local minWaitTime = 5
+
+-- =========================
+-- SISTEMA DE GUARDADO DE FARMS
+-- =========================
+
+local SaveFileName = "GriffHub_SaveData_" .. LocalPlayer.UserId .. ".json"
+local SaveFileName2 = "GriffHub_SaveData2_" .. LocalPlayer.UserId .. ".json"
+
+local function saveState()
+	local data = { farmActive = farmActive }
+	pcall(function()
+		if writefile then
+			writefile(SaveFileName, game:GetService("HttpService"):JSONEncode(data))
+		end
+	end)
+end
+
+local function saveState2()
+	local data = { farm2Active = farm2Active }
+	pcall(function()
+		if writefile then
+			writefile(SaveFileName2, game:GetService("HttpService"):JSONEncode(data))
+		end
+	end)
+end
+
+local function loadState()
+	local success, content = pcall(function()
+		if readfile then return readfile(SaveFileName) end
+	end)
+	if success and content then
+		local success2, data = pcall(function()
+			return game:GetService("HttpService"):JSONDecode(content)
+		end)
+		if success2 and data then return data.farmActive or false end
+	end
+	return false
+end
+
+local function loadState2()
+	local success, content = pcall(function()
+		if readfile then return readfile(SaveFileName2) end
+	end)
+	if success and content then
+		local success2, data = pcall(function()
+			return game:GetService("HttpService"):JSONDecode(content)
+		end)
+		if success2 and data then return data.farm2Active or false end
+	end
+	return false
+end
+
+-- =========================
+-- VARIABLES PARA LA PÁGINA FUN
+-- =========================
+
+local signEnabled = false
+
+-- =========================
+-- FUNCIÓN PARA CREAR LA GUI (PERSISTENTE)
+-- =========================
+
+local screenGui = nil
+local goldDisplay = nil
+
+local function crearGUI()
+    -- Si ya existe una GUI, destruirla primero para evitar duplicados
+    if screenGui and screenGui.Parent then
+        screenGui:Destroy()
+    end
+    
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "GriffHubV9"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = CoreGui
+    
+    -- Asegurar que la GUI nunca se destruya
+    screenGui:SetAttribute("Persistent", true)
+    
+    local toggleBtn = Instance.new("TextButton", screenGui)
+    toggleBtn.Size = UDim2.new(0, 120, 0, 40)
+    toggleBtn.Position = UDim2.new(0, 20, 0.15, 0)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(138,43,226)
+    toggleBtn.TextColor3 = Color3.new(1,1,1)
+    toggleBtn.Font = Enum.Font.GothamBold
+    toggleBtn.TextSize = 14
+    toggleBtn.Text = "🥚 Griff Hub v9"
+    toggleBtn.BorderSizePixel = 0
+    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 8)
+    
+    local mainFrame = Instance.new("Frame", screenGui)
+    mainFrame.Size = UDim2.new(0, 450, 0, 600)
+    mainFrame.Position = UDim2.new(0.32, 0, 0.15, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,35)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Visible = false
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+    
+    -- DISPLAY DE ORO PERSISTENTE (fuera del mainFrame para que siempre se vea)
+    goldDisplay = Instance.new("TextLabel", screenGui)
+    goldDisplay.Name = "GoldDisplay"
+    goldDisplay.Size = UDim2.new(0, 150, 0, 35)
+    goldDisplay.Position = UDim2.new(1, -160, 0, 10)
+    goldDisplay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    goldDisplay.BackgroundTransparency = 0.3
+    goldDisplay.TextColor3 = Color3.fromRGB(255, 215, 0)
+    goldDisplay.Font = Enum.Font.GothamBold
+    goldDisplay.TextSize = 16
+    goldDisplay.Text = "💰 $0"
+    goldDisplay.TextXAlignment = Enum.TextXAlignment.Center
+    goldDisplay.ZIndex = 10
+    Instance.new("UICorner", goldDisplay).CornerRadius = UDim.new(0, 8)
+    
+    -- Añadir borde al display de oro
+    local goldStroke = Instance.new("UIStroke", goldDisplay)
+    goldStroke.Color = Color3.fromRGB(255, 215, 0)
+    goldStroke.Thickness = 1
+    goldStroke.Transparency = 0.5
+    
+    toggleBtn.MouseButton1Click:Connect(function()
+        mainFrame.Visible = not mainFrame.Visible
+    end)
+    
+    local header = Instance.new("Frame", mainFrame)
+    header.Size = UDim2.new(1,0,0,44)
+    header.Position = UDim2.new(0,0,0,0)
+    header.BackgroundColor3 = Color3.fromRGB(138,43,226)
+    header.BorderSizePixel = 0
+    Instance.new("UICorner", header).CornerRadius = UDim.new(0,12)
+    
+    local title = Instance.new("TextLabel", header)
+    title.Size = UDim2.new(1,-20,1,0)
+    title.Position = UDim2.new(0,10,0,0)
+    title.BackgroundTransparency = 1
+    title.TextColor3 = Color3.new(1,1,1)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 18
+    title.Text = "🥚 Griff Hub v9"
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Botón de cerrar ventana
+    local closeBtn = Instance.new("TextButton", header)
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -40, 0, 7)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 14
+    closeBtn.Text = "X"
+    closeBtn.BorderSizePixel = 0
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        mainFrame.Visible = false
+    end)
+    
+    -- =========================
+    -- TABS Y PÁGINAS
+    -- =========================
+    
+    local tabs = Instance.new("Frame", mainFrame)
+    tabs.Size = UDim2.new(1,0,0,40)
+    tabs.Position = UDim2.new(0,0,0,48)
+    tabs.BackgroundTransparency = 1
+    
+    local tabLayout = Instance.new("UIListLayout", tabs)
+    tabLayout.FillDirection = Enum.FillDirection.Horizontal
+    tabLayout.Padding = UDim.new(0,8)
+    tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    
+    local function newTab(name)
+        local b = Instance.new("TextButton", tabs)
+        b.Size = UDim2.new(0.28, 0, 1, 0)
+        b.BackgroundColor3 = Color3.fromRGB(50,50,60)
+        b.TextColor3 = Color3.new(1,1,1)
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 14
+        b.Text = name
+        b.BorderSizePixel = 0
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+        return b
+    end
+    
+    local farmTab = newTab("🌾 AutoFarm")
+    local funTab = newTab("🎮 Fun")
+    local optimizarTab = newTab("⚡ Optimizar")
+    
+    local function newPage()
+        local p = Instance.new("ScrollingFrame", mainFrame)
+        p.Size = UDim2.new(1, -14, 1, -110)
+        p.Position = UDim2.new(0, 7, 0, 100)
+        p.BackgroundTransparency = 1
+        p.ScrollBarThickness = 6
+        p.Visible = false
+        return p
+    end
+    
+    local farmPage = newPage()
+    local funPage = newPage()
+    local optimizarPage = newPage()
+    farmPage.Visible = true
+    
+    farmTab.MouseButton1Click:Connect(function()
+        farmPage.Visible = true
+        funPage.Visible = false
+        optimizarPage.Visible = false
+    end)
+    
+    funTab.MouseButton1Click:Connect(function()
+        farmPage.Visible = false
+        funPage.Visible = true
+        optimizarPage.Visible = false
+    end)
+    
+    optimizarTab.MouseButton1Click:Connect(function()
+        farmPage.Visible = false
+        funPage.Visible = false
+        optimizarPage.Visible = true
+    end)
+    
+    local function pageButton(parent, y, text, color)
+        local btn = Instance.new("TextButton", parent)
+        btn.Size = UDim2.new(0.92, 0, 0, 44)
+        btn.Position = UDim2.new(0.04, 0, 0, y)
+        btn.BackgroundColor3 = color
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 16
+        btn.Text = text
+        btn.BorderSizePixel = 0
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+        return btn
+    end
+    
+    -- =========================
+    -- FUNCIÓN VERIFICAR SI EXISTE UNA TORRE
+    -- =========================
+    
+    local function towerExists(towerName)
+        local towers = WS:FindFirstChild("Towers")
+        if not towers then return false end
+        
+        for _, tower in pairs(towers:GetChildren()) do
+            local config = tower:FindFirstChild("Config")
+            if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
+                local tName = config:FindFirstChild("TowerName")
+                if tName and tName.Value == towerName then
+                    return true
+                end
+            end
+        end
+        return false
+    end
+    
+    -- =========================
+    -- FUNCIÓN CONTAR TORRES DEL JUGADOR
+    -- =========================
+    
+    local function countPlayerTowers()
+        local towers = WS:FindFirstChild("Towers")
+        if not towers then return 0 end
+        
+        local count = 0
+        for _, tower in pairs(towers:GetChildren()) do
+            local config = tower:FindFirstChild("Config")
+            if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
+                count = count + 1
+            end
+        end
+        return count
+    end
+    
+    -- =========================
+    -- FUNCIÓN MEJORA UNIDADES
+    -- =========================
+    
+    local function mejorarUnidad(nombreUnidad)
+        local functions = RS:FindFirstChild("Functions")
+        local spawnTower = functions and functions:FindFirstChild("SpawnTower")
+        if not spawnTower then return end
+        
+        local towers = WS:FindFirstChild("Towers")
+        if not towers then return end
+        
+        for _, torre in pairs(towers:GetChildren()) do
+            local config = torre:FindFirstChild("Config")
+            if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
+                local nombre = config:FindFirstChild("TowerName")
+                local upgrade = config:FindFirstChild("Upgrade")
+                if nombre and nombre.Value == nombreUnidad and upgrade and upgrade.Value then
+                    pcall(function()
+                        spawnTower:InvokeServer(upgrade.Value.Name, torre.PrimaryPart.CFrame, torre)
+                    end)
+                end
+            end
+        end
+    end
+    
+    -- =========================
+    -- FUNCIÓN VENDER TODOS LOS BUNNIES
+    -- =========================
+    
+    local function venderTodosLosBunnies()
+        local sellTower = RS.Events:FindFirstChild("SellTower") or RS.Functions:FindFirstChild("SellTower")
+        if not sellTower then return 0 end
+        
+        local towers = WS:FindFirstChild("Towers")
+        if not towers then return 0 end
+        
+        local vendidos = 0
+        for _, tower in pairs(towers:GetChildren()) do
+            local config = tower:FindFirstChild("Config")
+            if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
+                local tName = config:FindFirstChild("TowerName")
+                if tName and (tName.Value == "Large Bunny TV Man" or tName.Value == "Bunny TV Man") then
+                    pcall(function() sellTower:InvokeServer(tower) end)
+                    vendidos = vendidos + 1
+                end
+            end
+        end
+        return vendidos
+    end
+    
+    -- =========================
+    -- 🌾 AUTOFARM PAGE - BOTÓN 1
+    -- =========================
+    
+    local wasActive = loadState()
+    local wasActive2 = loadState2()
+    
+    local farmBtn
+    if wasActive then
+        farmBtn = pageButton(farmPage, 10, "🌾 Detener Farm 1", Color3.fromRGB(200, 50, 50))
+    else
+        farmBtn = pageButton(farmPage, 10, "🌾 Activar Farm 1", Color3.fromRGB(138, 43, 226))
+    end
+    
+    local statusLabel1 = Instance.new("TextLabel", farmPage)
+    statusLabel1.Size = UDim2.new(0.92, 0, 0, 25)
+    statusLabel1.Position = UDim2.new(0.04, 0, 0, 60)
+    statusLabel1.BackgroundTransparency = 1
+    statusLabel1.TextColor3 = wasActive and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
+    statusLabel1.Font = Enum.Font.Gotham
+    statusLabel1.TextSize = 11
+    statusLabel1.Text = wasActive and "▶️ Farm 1 Activado" or "⏸️ Farm 1 Inactivo"
+    statusLabel1.TextXAlignment = Enum.TextXAlignment.Center
+    
+    local timerLabel1 = Instance.new("TextLabel", farmPage)
+    timerLabel1.Size = UDim2.new(0.92, 0, 0, 25)
+    timerLabel1.Position = UDim2.new(0.04, 0, 0, 85)
+    timerLabel1.BackgroundTransparency = 1
+    timerLabel1.TextColor3 = Color3.fromRGB(255, 200, 0)
+    timerLabel1.Font = Enum.Font.Gotham
+    timerLabel1.TextSize = 11
+    timerLabel1.Text = "⏱️ Farm 1: Inactivo"
+    timerLabel1.TextXAlignment = Enum.TextXAlignment.Center
+    
+    local spawnTimeLabel1 = Instance.new("TextLabel", farmPage)
+    spawnTimeLabel1.Size = UDim2.new(0.92, 0, 0, 25)
+    spawnTimeLabel1.Position = UDim2.new(0.04, 0, 0, 110)
+    spawnTimeLabel1.BackgroundTransparency = 1
+    spawnTimeLabel1.TextColor3 = Color3.fromRGB(180, 180, 255)
+    spawnTimeLabel1.Font = Enum.Font.Gotham
+    spawnTimeLabel1.TextSize = 11
+    spawnTimeLabel1.Text = "🐰 Bunny: 16s"
+    spawnTimeLabel1.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- =========================
+    -- 🌾 AUTOFARM PAGE - BOTÓN 2
+    -- =========================
+    
+    local farmBtn2
+    if wasActive2 then
+        farmBtn2 = pageButton(farmPage, 145, "🌾 Detener Farm 2", Color3.fromRGB(200, 50, 50))
+    else
+        farmBtn2 = pageButton(farmPage, 145, "🌾 Activar Farm 2", Color3.fromRGB(50, 150, 200))
+    end
+    
+    local statusLabel2 = Instance.new("TextLabel", farmPage)
+    statusLabel2.Size = UDim2.new(0.92, 0, 0, 25)
+    statusLabel2.Position = UDim2.new(0.04, 0, 0, 195)
+    statusLabel2.BackgroundTransparency = 1
+    statusLabel2.TextColor3 = wasActive2 and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
+    statusLabel2.Font = Enum.Font.Gotham
+    statusLabel2.TextSize = 11
+    statusLabel2.Text = wasActive2 and "▶️ Farm 2 Activado" or "⏸️ Farm 2 Inactivo"
+    statusLabel2.TextXAlignment = Enum.TextXAlignment.Center
+    
+    local timerLabel2 = Instance.new("TextLabel", farmPage)
+    timerLabel2.Size = UDim2.new(0.92, 0, 0, 25)
+    timerLabel2.Position = UDim2.new(0.04, 0, 0, 220)
+    timerLabel2.BackgroundTransparency = 1
+    timerLabel2.TextColor3 = Color3.fromRGB(255, 200, 0)
+    timerLabel2.Font = Enum.Font.Gotham
+    timerLabel2.TextSize = 11
+    timerLabel2.Text = "⏱️ Farm 2: Inactivo"
+    timerLabel2.TextXAlignment = Enum.TextXAlignment.Center
+    
+    local spawnTimeLabel2 = Instance.new("TextLabel", farmPage)
+    spawnTimeLabel2.Size = UDim2.new(0.92, 0, 0, 25)
+    spawnTimeLabel2.Position = UDim2.new(0.04, 0, 0, 245)
+    spawnTimeLabel2.BackgroundTransparency = 1
+    spawnTimeLabel2.TextColor3 = Color3.fromRGB(180, 180, 255)
+    spawnTimeLabel2.Font = Enum.Font.Gotham
+    spawnTimeLabel2.TextSize = 11
+    spawnTimeLabel2.Text = "🐰 Bunny: 11s"
+    spawnTimeLabel2.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- =========================
+    -- 🎮 FUN PAGE (SOLO SIGN FRAME)
+    -- =========================
+    
+    -- Botón para Sign Frame
+    local funSignBtn = pageButton(funPage, 10, "📜 Toggle Sign Frame", Color3.fromRGB(186, 85, 211))
+    
+    -- Estado del botón
+    local signStatus = Instance.new("TextLabel", funPage)
+    signStatus.Size = UDim2.new(0.92, 0, 0, 25)
+    signStatus.Position = UDim2.new(0.04, 0, 0, 60)
+    signStatus.BackgroundTransparency = 1
+    signStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+    signStatus.Font = Enum.Font.Gotham
+    signStatus.TextSize = 11
+    signStatus.Text = "📜 Sign Frame: ❌ OFF"
+    signStatus.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- Acción del botón
+    funSignBtn.MouseButton1Click:Connect(function()
+        signEnabled = not signEnabled
+        if signEnabled then
+            signStatus.Text = "📜 Sign Frame: ✅ ON"
+            signStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
+        else
+            signStatus.Text = "📜 Sign Frame: ❌ OFF"
+            signStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+        end
+    end)
+    
+    -- =========================
+    -- FIRMA (CRÉDITOS)
+    -- =========================
+    
+    local signature = Instance.new("TextLabel", mainFrame)
+    signature.Size = UDim2.new(1, -20, 0, 25)
+    signature.Position = UDim2.new(0, 10, 1, -35)
+    signature.BackgroundTransparency = 1
+    signature.TextColor3 = Color3.fromRGB(128, 128, 128)
+    signature.Font = Enum.Font.Gotham
+    signature.TextSize = 10
+    signature.Text = "⚡ Griff Hub v9 | AutoFarm + Visual Toggles"
+    signature.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- =========================
+    -- FARM 1
+    -- =========================
+    
+    local function startFarm1()
+        farmActive = true
+        
+        task.spawn(function()
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(21.937172, 5.037024, -161.283066))
+                task.wait(0.1)
+                pcall(function() RS.Events.StartElevator:FireServer("Elevator14") end)
+                statusLabel1.Text = "✅ TP Completado"
+                task.wait(2)
+            end
+            
+            if not farmActive then return end
+            
+            statusLabel1.Text = "▶️ Farm 1 Activado"
+            statusLabel1.TextColor3 = Color3.fromRGB(0, 255, 0)
+            
+            local bunnyCFrame = CFrame.new(-25.735321, 86.0418549, -85.5302887, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+            local titanCFrame = CFrame.new(-47.0388031, 90.3418045, -86.8553925, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+            
+            task.spawn(function()
+                while farmActive do
+                    pcall(function() RS.Events.VoteSkip:FireServer() end)
+                    task.wait(0.05)
+                end
+            end)
+            
+            task.spawn(function()
+                while farmActive do
+                    mejorarUnidad("Large Bunny TV Man")
+                    mejorarUnidad("Upgraded Titan Cameraman")
+                    task.wait(0.3)
+                end
+            end)
+            
+            statusLabel1.Text = "🐰 Farm 1 - BUNNY"
+            timerLabel1.Text = "⏱️ Fase: BUNNY"
+            timerLabel1.TextColor3 = Color3.fromRGB(255, 200, 0)
+            
+            currentWaitTime = 16
+            local bunnyStartTime = tick()
+            local bunnyCount = 0
+            
+            while farmActive and (tick() - bunnyStartTime) < 60 do
+                local elapsed = tick() - bunnyStartTime
+                local timeLeft = math.max(0, 60 - elapsed)
+                timerLabel1.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
+                spawnTimeLabel1.Text = "🐰 Próximo Bunny en " .. currentWaitTime .. "s"
+                
+                local waited = 0
+                while farmActive and waited < currentWaitTime and (tick() - bunnyStartTime) < 60 do
+                    task.wait(1)
+                    waited = waited + 1
+                    elapsed = tick() - bunnyStartTime
+                    if (tick() - bunnyStartTime) < 60 then
+                        local timeLeft = math.max(0, 60 - elapsed)
+                        timerLabel1.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
+                        spawnTimeLabel1.Text = "🐰 Próximo Bunny en " .. (currentWaitTime - waited) .. "s"
+                    end
+                end
+                
+                if farmActive and (tick() - bunnyStartTime) < 60 then
+                    pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame) end)
+                    bunnyCount = bunnyCount + 1
+                    statusLabel1.Text = "🐰 Farm 1 Bunny #" .. bunnyCount
+                    if currentWaitTime > minWaitTime then
+                        currentWaitTime = math.max(minWaitTime, currentWaitTime - 1)
+                    end
+                    spawnTimeLabel1.Text = "🐰 Bunny: " .. currentWaitTime .. "s"
+                end
+            end
+            
+            if not farmActive then return end
+            
+            statusLabel1.Text = "🏆 Farm 1 - TITAN"
+            timerLabel1.Text = "⏱️ Fase: TITAN"
+            timerLabel1.TextColor3 = Color3.fromRGB(255, 100, 100)
+            
+            currentWaitTime = 16
+            local titanCount = 0
+            
+            while farmActive do
+                spawnTimeLabel1.Text = "🏆 Próximo Titan en " .. currentWaitTime .. "s"
+                
+                local waited = 0
+                while farmActive and waited < currentWaitTime do
+                    task.wait(1)
+                    waited = waited + 1
+                    timerLabel1.Text = "⏱️ TITAN: INFINITO"
+                    spawnTimeLabel1.Text = "🏆 Próximo Titan en " .. (currentWaitTime - waited) .. "s"
+                end
+                
+                if farmActive then
+                    pcall(function() RS.Functions.SpawnTower:InvokeServer("Upgraded Titan Cameraman", titanCFrame) end)
+                    titanCount = titanCount + 1
+                    statusLabel1.Text = "🏆 Farm 1 Titan #" .. titanCount
+                    if currentWaitTime > minWaitTime then
+                        currentWaitTime = math.max(minWaitTime, currentWaitTime - 1)
+                    end
+                    spawnTimeLabel1.Text = "🏆 Titan: " .. currentWaitTime .. "s"
+                end
+            end
+        end)
+    end
+    
+    -- =========================
+    -- FARM 2 (CON HELICOPTERO CADA 10 SEGUNDOS)
+    -- =========================
+    
+    local function startFarm2()
+        farm2Active = true
+        
+        task.spawn(function()
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(-116.770126, 6.841276, -175.873993))
+                task.wait(0.1)
+                pcall(function() RS.Events.StartElevator:FireServer("Elevator19") end)
+                statusLabel2.Text = "✅ TP Completado"
+                task.wait(2)
+            end
+            
+            if not farm2Active then return end
+            
+            statusLabel2.Text = "▶️ Farm 2 Activado"
+            statusLabel2.TextColor3 = Color3.fromRGB(0, 255, 0)
+            
+            local scientistCFrame = CFrame.new(41.5543137, 82.593399, -44.0053787, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+            local bunnyCFrame2 = CFrame.new(29.8349686, 84.2882462, -17.7190742, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+            local mechCFrame2 = CFrame.new(7.5827179, 88.5881958, -28.159481, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+            local helicopterCFrame = CFrame.new(12.570381164550781, 85.38301086425781, -0.2645606994628906, -4.371138828673793e-08, 0, 1, 0, 1, 0, -1, 0, -4.371138828673793e-08)
+            
+            -- Colocar Scientists
+            statusLabel2.Text = "🔬 Colocando 4 Scientists..."
+            for i = 1, 4 do
+                pcall(function() RS.Functions.SpawnTower:InvokeServer("Scientist Cameraman", scientistCFrame) end)
+                statusLabel2.Text = "🔬 Scientist " .. i .. "/4"
+                task.wait(0.3)
+            end
+            
+            -- VoteSkip infinito
+            task.spawn(function()
+                while farm2Active do
+                    pcall(function() RS.Events.VoteSkip:FireServer() end)
+                    task.wait(0.05)
+                end
+            end)
+            
+            -- Mejora automática
+            task.spawn(function()
+                while farm2Active do
+                    mejorarUnidad("Large Bunny TV Man")
+                    mejorarUnidad("Scientist Cameraman")
+                    mejorarUnidad("Mech Cameraman")
+                    mejorarUnidad("Large Speaker Helicopter")
+                    task.wait(0.3)
+                end
+            end)
+            
+            -- ===== FASE 1: BUNNY (60 segundos) =====
+            statusLabel2.Text = "🐰 Fase 1: BUNNY (60s)"
+            timerLabel2.Text = "⏱️ Fase: BUNNY"
+            timerLabel2.TextColor3 = Color3.fromRGB(255, 200, 0)
+            
+            currentWaitTime2 = 11
+            local bunnyStartTime = tick()
+            local bunnyCount = 0
+            
+            while farm2Active and (tick() - bunnyStartTime) < 60 do
+                local elapsed = tick() - bunnyStartTime
+                local timeLeft = math.max(0, 60 - elapsed)
+                timerLabel2.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
+                spawnTimeLabel2.Text = "🐰 Bunny en " .. currentWaitTime2 .. "s"
+                
+                local waited = 0
+                while farm2Active and waited < currentWaitTime2 and (tick() - bunnyStartTime) < 60 do
+                    task.wait(1)
+                    waited = waited + 1
+                    if (tick() - bunnyStartTime) < 60 then
+                        timerLabel2.Text = "⏱️ BUNNY: " .. math.floor(60 - (tick() - bunnyStartTime)) .. "s"
+                        spawnTimeLabel2.Text = "🐰 Bunny en " .. (currentWaitTime2 - waited) .. "s"
+                    end
+                end
+                
+                if farm2Active and (tick() - bunnyStartTime) < 60 then
+                    pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame2) end)
+                    bunnyCount = bunnyCount + 1
+                    statusLabel2.Text = "🐰 Bunny #" .. bunnyCount
+                    
+                    if currentWaitTime2 > minWaitTime then
+                        currentWaitTime2 = math.max(minWaitTime, currentWaitTime2 - 1)
+                    end
+                    spawnTimeLabel2.Text = "🐰 Bunny: " .. currentWaitTime2 .. "s"
+                end
+            end
+            
+            if not farm2Active then return end
+            
+            -- ===== FASE 2: MECH CADA 3 SEGUNDOS (50 SEGUNDOS) =====
+            statusLabel2.Text = "🤖 Fase 2: MECH (cada 3s) - 50s"
+            timerLabel2.Text = "⏱️ Fase: MECH 3s"
+            timerLabel2.TextColor3 = Color3.fromRGB(100, 255, 150)
+            
+            local mechStartTime = tick()
+            local mechCount = 0
+            
+            while farm2Active and (tick() - mechStartTime) < 50 do
+                local elapsed = tick() - mechStartTime
+                local timeLeft = math.max(0, 50 - elapsed)
+                timerLabel2.Text = "⏱️ MECH: " .. math.floor(timeLeft) .. "s"
+                spawnTimeLabel2.Text = "🤖 Mech en 3s"
+                
+                local waited = 0
+                while farm2Active and waited < 3 and (tick() - mechStartTime) < 50 do
+                    task.wait(1)
+                    waited = waited + 1
+                    if (tick() - mechStartTime) < 50 then
+                        timerLabel2.Text = "⏱️ MECH: " .. math.floor(50 - (tick() - mechStartTime)) .. "s"
+                        spawnTimeLabel2.Text = "🤖 Mech en " .. (3 - waited) .. "s"
+                    end
+                end
+                
+                if farm2Active and (tick() - mechStartTime) < 50 then
+                    pcall(function() RS.Functions.SpawnTower:InvokeServer("Mech Cameraman", mechCFrame2) end)
+                    mechCount = mechCount + 1
+                    statusLabel2.Text = "🤖 Mech #" .. mechCount
+                end
+            end
+            
+            if not farm2Active then return end
+            
+            -- ===== FASE 3: ELIMINAR BUNNIES =====
+            statusLabel2.Text = "🗑️ Eliminando Bunnies..."
+            venderTodosLosBunnies()
+            statusLabel2.Text = "🗑️ Limpieza completada"
+            task.wait(1)
+            
+            if not farm2Active then return end
+            
+            -- ===== FASE 4: LARGE SPEAKER HELICOPTER CADA 10 SEGUNDOS =====
+            statusLabel2.Text = "🚁 Fase 4: LARGE SPEAKER HELICOPTER (cada 10s)"
+            timerLabel2.Text = "⏱️ Fase: HELICOPTER"
+            timerLabel2.TextColor3 = Color3.fromRGB(255, 150, 100)
+            
+            local helicopterCount = 0
+            
+            while farm2Active do
+                spawnTimeLabel2.Text = "🚁 Helicopter en 10s"
+                timerLabel2.Text = "⏱️ HELICOPTER: INFINITO"
+                
+                local waited = 0
+                while farm2Active and waited < 10 do
+                    task.wait(1)
+                    waited = waited + 1
+                    spawnTimeLabel2.Text = "🚁 Helicopter en " .. (10 - waited) .. "s"
+                end
+                
+                if farm2Active then
+                    pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Speaker Helicopter", helicopterCFrame) end)
+                    helicopterCount = helicopterCount + 1
+                    statusLabel2.Text = "🚁 Large Speaker Helicopter #" .. helicopterCount
+                end
+            end
+        end)
+    end
+    
+    -- =========================
+    -- BOTONES AUTOFARM
+    -- =========================
+    
+    farmBtn.MouseButton1Click:Connect(function()
+        farmActive = not farmActive
+        saveState()
+        if farmActive then
+            farmBtn.Text = "🌾 Detener Farm 1"
+            farmBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            startFarm1()
+        else
+            farmBtn.Text = "🌾 Activar Farm 1"
+            farmBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+            statusLabel1.Text = "⏸️ Farm 1 Inactivo"
+            statusLabel1.TextColor3 = Color3.fromRGB(255, 255, 0)
+            timerLabel1.Text = "⏱️ Farm 1: Inactivo"
+            spawnTimeLabel1.Text = "🐰 Bunny: 16s"
+        end
+    end)
+    
+    farmBtn2.MouseButton1Click:Connect(function()
+        farm2Active = not farm2Active
+        saveState2()
+        if farm2Active then
+            farmBtn2.Text = "🌾 Detener Farm 2"
+            farmBtn2.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            startFarm2()
+        else
+            farmBtn2.Text = "🌾 Activar Farm 2"
+            farmBtn2.BackgroundColor3 = Color3.fromRGB(50, 150, 200)
+            statusLabel2.Text = "⏸️ Farm 2 Inactivo"
+            statusLabel2.TextColor3 = Color3.fromRGB(255, 255, 0)
+            timerLabel2.Text = "⏱️ Farm 2: Inactivo"
+            spawnTimeLabel2.Text = "🐰 Bunny: 11s"
+        end
+    end)
+    
+    -- =========================
+    -- AUTO-INICIO
+    -- =========================
+    
+    if wasActive then
+        farmActive = true
+        task.spawn(function() task.wait(1); startFarm1() end)
+    end
+    
+    if wasActive2 then
+        farm2Active = true
+        task.spawn(function() task.wait(1.5); startFarm2() end)
+    end
+    
+    -- =========================
+    -- OPTIMIZAR PAGE
+    -- =========================
+    
+    local boostBtn = pageButton(optimizarPage, 10, "⚡ Boost FPS", Color3.fromRGB(186, 85, 211))
+    local rejoinBtn = pageButton(optimizarPage, 70, "🔁 Rejoin", Color3.fromRGB(138, 43, 226))
+    
+    boostBtn.MouseButton1Click:Connect(function()
+        boostBtn.Text = "⏳ Aplicando..."
+        task.wait(0.5)
+        pcall(function()
+            Lighting.GlobalShadows = false
+            Lighting.FogEnd = 1e10
+            Lighting.Brightness = 1
+            settings().Rendering.QualityLevel = 1
+        end)
+        boostBtn.Text = "✅ FPS Boost"
+        task.wait(2)
+        boostBtn.Text = "⚡ Boost FPS"
+    end)
+    
+    rejoinBtn.MouseButton1Click:Connect(function()
+        rejoinBtn.Text = "🔄 Rejoin..."
+        task.wait(0.5)
+        pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
+    end)
+    
+    return screenGui
+end
+
+-- =========================
+-- FUNCIÓN DE ACTUALIZACIÓN PARA SIGN FRAME
+-- =========================
+
+RunService.RenderStepped:Connect(function()
+    local inventory = PlayerGui:FindFirstChild("Inventory", true)
+    if inventory then
+        local signFrame = inventory:FindFirstChild("Sign", true)
+        if signFrame then
+            signFrame.Visible = signEnabled
         end
     end
 end)
 
-print("✅ Griff Hub cargado - Modo visual | AutoSell y Sign toggles")
+-- =========================
+-- FUNCIÓN PARA ACTUALIZAR EL ORO EN LA GUI (PERSISTENTE)
+-- =========================
+
+local function updateGoldValue()
+    if not goldDisplay then return end
+    
+    local function actualizar()
+        local goldValue = LocalPlayer:FindFirstChild("Gold")
+        if goldValue and goldDisplay then
+            goldDisplay.Text = "💰 $" .. goldValue.Value
+        elseif goldDisplay then
+            goldDisplay.Text = "💰 $0"
+        end
+    end
+    
+    -- Conexión al cambio de oro
+    local function conectarOro()
+        local gold = LocalPlayer:FindFirstChild("Gold")
+        if gold then
+            local connection
+            connection = gold.Changed:Connect(function(newValue)
+                if goldDisplay then
+                    goldDisplay.Text = "💰 $" .. newValue
+                end
+            end)
+            
+            -- Si el oro se destruye (al morir), reconectar
+            gold.AncestryChanged:Connect(function()
+                if not gold.Parent then
+                    if connection then connection:Disconnect() end
+                    task.wait(0.1)
+                    conectarOro()
+                end
+            end)
+            
+            actualizar()
+        else
+            -- Esperar a que el oro aparezca
+            LocalPlayer.ChildAdded:Connect(function(child)
+                if child.Name == "Gold" then
+                    conectarOro()
+                end
+            end)
+            actualizar()
+        end
+    end
+    
+    conectarOro()
+end
+
+-- =========================
+-- INICIAR TODO
+-- =========================
+
+-- Crear la GUI
+crearGUI()
+
+-- Iniciar la actualización del oro
+updateGoldValue()
+
+-- Si el jugador muere, la GUI se mantiene pero hay que asegurar que el oro siga actualizándose
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    updateGoldValue()
+end)
+
+print("✅ Griff Hub v9 cargado - GUI PERSISTENTE | Sign Frame Toggle | AutoFarms")
