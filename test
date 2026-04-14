@@ -55,8 +55,8 @@ end
 pcall(blockAllErrorNotifications)
 
 -- VARIABLES GLOBALES
-local farmActive = false
-local farm2Active = false
+local nightmareActive = false
+local crazyActive = false
 local currentWaitTime = 16
 local currentWaitTime2 = 11
 local minWaitTime = 5
@@ -65,11 +65,11 @@ local minWaitTime = 5
 -- SISTEMA DE GUARDADO
 -- =========================
 
-local SaveFileName = "GriffHub_SaveData_" .. LocalPlayer.UserId .. ".json"
-local SaveFileName2 = "GriffHub_SaveData2_" .. LocalPlayer.UserId .. ".json"
+local SaveFileName = "GriffHub_SaveData_Nightmare_" .. LocalPlayer.UserId .. ".json"
+local SaveFileName2 = "GriffHub_SaveData_Crazy_" .. LocalPlayer.UserId .. ".json"
 
 local function saveState()
-	local data = { farmActive = farmActive }
+	local data = { nightmareActive = nightmareActive }
 	pcall(function()
 		if writefile then
 			writefile(SaveFileName, game:GetService("HttpService"):JSONEncode(data))
@@ -78,7 +78,7 @@ local function saveState()
 end
 
 local function saveState2()
-	local data = { farm2Active = farm2Active }
+	local data = { crazyActive = crazyActive }
 	pcall(function()
 		if writefile then
 			writefile(SaveFileName2, game:GetService("HttpService"):JSONEncode(data))
@@ -94,7 +94,7 @@ local function loadState()
 		local success2, data = pcall(function()
 			return game:GetService("HttpService"):JSONDecode(content)
 		end)
-		if success2 and data then return data.farmActive or false end
+		if success2 and data then return data.nightmareActive or false end
 	end
 	return false
 end
@@ -107,7 +107,7 @@ local function loadState2()
 		local success2, data = pcall(function()
 			return game:GetService("HttpService"):JSONDecode(content)
 		end)
-		if success2 and data then return data.farm2Active or false end
+		if success2 and data then return data.crazyActive or false end
 	end
 	return false
 end
@@ -518,11 +518,12 @@ local function crearGUI()
     local wasActive = loadState()
     local wasActive2 = loadState2()
     
-    local farmBtn
+    -- NIGHTMARE BUTTON (antes Farm 1)
+    local nightmareBtn
     if wasActive then
-        farmBtn = pageButton(farmPage, 10, "🌾 Detener Farm 1", Color3.fromRGB(200, 50, 50))
+        nightmareBtn = pageButton(farmPage, 10, "🌙 Detener Nightmare", Color3.fromRGB(200, 50, 50))
     else
-        farmBtn = pageButton(farmPage, 10, "🌾 Activar Farm 1", Color3.fromRGB(138, 43, 226))
+        nightmareBtn = pageButton(farmPage, 10, "🌙 Activar Nightmare", Color3.fromRGB(138, 43, 226))
     end
     
     local statusLabel1 = Instance.new("TextLabel", farmPage)
@@ -532,7 +533,7 @@ local function crearGUI()
     statusLabel1.TextColor3 = wasActive and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
     statusLabel1.Font = Enum.Font.Gotham
     statusLabel1.TextSize = 11
-    statusLabel1.Text = wasActive and "▶️ Farm 1 Activado" or "⏸️ Farm 1 Inactivo"
+    statusLabel1.Text = wasActive and "🌙 Nightmare Activado" or "🌙 Nightmare Inactivo"
     statusLabel1.TextXAlignment = Enum.TextXAlignment.Center
     
     local timerLabel1 = Instance.new("TextLabel", farmPage)
@@ -542,7 +543,7 @@ local function crearGUI()
     timerLabel1.TextColor3 = Color3.fromRGB(255, 200, 0)
     timerLabel1.Font = Enum.Font.Gotham
     timerLabel1.TextSize = 11
-    timerLabel1.Text = "⏱️ Farm 1: Inactivo"
+    timerLabel1.Text = "⏱️ Nightmare: Inactivo"
     timerLabel1.TextXAlignment = Enum.TextXAlignment.Center
     
     local spawnTimeLabel1 = Instance.new("TextLabel", farmPage)
@@ -555,11 +556,12 @@ local function crearGUI()
     spawnTimeLabel1.Text = "🐰 Bunny: 16s"
     spawnTimeLabel1.TextXAlignment = Enum.TextXAlignment.Center
     
-    local farmBtn2
+    -- CRAZY BUTTON (antes Farm 2)
+    local crazyBtn
     if wasActive2 then
-        farmBtn2 = pageButton(farmPage, 145, "🌾 Detener Farm 2", Color3.fromRGB(200, 50, 50))
+        crazyBtn = pageButton(farmPage, 145, "🌀 Detener Crazy", Color3.fromRGB(200, 50, 50))
     else
-        farmBtn2 = pageButton(farmPage, 145, "🌾 Activar Farm 2", Color3.fromRGB(50, 150, 200))
+        crazyBtn = pageButton(farmPage, 145, "🌀 Activar Crazy", Color3.fromRGB(50, 150, 200))
     end
     
     local statusLabel2 = Instance.new("TextLabel", farmPage)
@@ -569,7 +571,7 @@ local function crearGUI()
     statusLabel2.TextColor3 = wasActive2 and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
     statusLabel2.Font = Enum.Font.Gotham
     statusLabel2.TextSize = 11
-    statusLabel2.Text = wasActive2 and "▶️ Farm 2 Activado" or "⏸️ Farm 2 Inactivo"
+    statusLabel2.Text = wasActive2 and "🌀 Crazy Activado" or "🌀 Crazy Inactivo"
     statusLabel2.TextXAlignment = Enum.TextXAlignment.Center
     
     local timerLabel2 = Instance.new("TextLabel", farmPage)
@@ -579,7 +581,7 @@ local function crearGUI()
     timerLabel2.TextColor3 = Color3.fromRGB(255, 200, 0)
     timerLabel2.Font = Enum.Font.Gotham
     timerLabel2.TextSize = 11
-    timerLabel2.Text = "⏱️ Farm 2: Inactivo"
+    timerLabel2.Text = "⏱️ Crazy: Inactivo"
     timerLabel2.TextXAlignment = Enum.TextXAlignment.Center
     
     local spawnTimeLabel2 = Instance.new("TextLabel", farmPage)
@@ -603,15 +605,15 @@ local function crearGUI()
     signature.TextColor3 = Color3.fromRGB(128, 128, 128)
     signature.Font = Enum.Font.Gotham
     signature.TextSize = 10
-    signature.Text = "⚡ Griff Hub v9 | AutoFarm + Sistema de Firma"
+    signature.Text = "⚡ Griff Hub v9 | Nightmare + Crazy | Sistema de Firma"
     signature.TextXAlignment = Enum.TextXAlignment.Center
     
     -- =========================
-    -- FARM 1 (CON ENTERELEVATOR Y STARTELEVATOR)
+    -- NIGHTMARE (CON ENTERELEVATOR Y STARTELEVATOR)
     -- =========================
     
-    local function startFarm1()
-        farmActive = true
+    local function startNightmare()
+        nightmareActive = true
         
         task.spawn(function()
             -- AMBOS EVENTOS AL MISMO TIEMPO
@@ -625,30 +627,30 @@ local function crearGUI()
                 RS.Events.StartElevator:FireServer(unpack(argsStart))
             end)
             
-            if not farmActive then return end
+            if not nightmareActive then return end
             
-            statusLabel1.Text = "▶️ Farm 1 Activado"
+            statusLabel1.Text = "🌙 Nightmare Activado"
             statusLabel1.TextColor3 = Color3.fromRGB(0, 255, 0)
             
             local bunnyCFrame = CFrame.new(-25.735321, 86.0418549, -85.5302887, 1, 0, 0, 0, 1, 0, 0, 0, 1)
             local titanCFrame = CFrame.new(-47.0388031, 90.3418045, -86.8553925, 1, 0, 0, 0, 1, 0, 0, 0, 1)
             
             task.spawn(function()
-                while farmActive do
+                while nightmareActive do
                     pcall(function() RS.Events.VoteSkip:FireServer() end)
                     task.wait(0.05)
                 end
             end)
             
             task.spawn(function()
-                while farmActive do
+                while nightmareActive do
                     mejorarUnidad("Large Bunny TV Man")
                     mejorarUnidad("Upgraded Titan Cameraman")
                     task.wait(0.3)
                 end
             end)
             
-            statusLabel1.Text = "🐰 Farm 1 - BUNNY"
+            statusLabel1.Text = "🐰 Nightmare - BUNNY"
             timerLabel1.Text = "⏱️ Fase: BUNNY"
             timerLabel1.TextColor3 = Color3.fromRGB(255, 200, 0)
             
@@ -656,14 +658,14 @@ local function crearGUI()
             local bunnyStartTime = tick()
             local bunnyCount = 0
             
-            while farmActive and (tick() - bunnyStartTime) < 60 do
+            while nightmareActive and (tick() - bunnyStartTime) < 60 do
                 local elapsed = tick() - bunnyStartTime
                 local timeLeft = math.max(0, 60 - elapsed)
                 timerLabel1.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
                 spawnTimeLabel1.Text = "🐰 Próximo Bunny en " .. currentWaitTime .. "s"
                 
                 local waited = 0
-                while farmActive and waited < currentWaitTime and (tick() - bunnyStartTime) < 60 do
+                while nightmareActive and waited < currentWaitTime and (tick() - bunnyStartTime) < 60 do
                     task.wait(1)
                     waited = waited + 1
                     elapsed = tick() - bunnyStartTime
@@ -674,10 +676,10 @@ local function crearGUI()
                     end
                 end
                 
-                if farmActive and (tick() - bunnyStartTime) < 60 then
+                if nightmareActive and (tick() - bunnyStartTime) < 60 then
                     pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame) end)
                     bunnyCount = bunnyCount + 1
-                    statusLabel1.Text = "🐰 Farm 1 Bunny #" .. bunnyCount
+                    statusLabel1.Text = "🐰 Nightmare Bunny #" .. bunnyCount
                     if currentWaitTime > minWaitTime then
                         currentWaitTime = math.max(minWaitTime, currentWaitTime - 1)
                     end
@@ -685,30 +687,30 @@ local function crearGUI()
                 end
             end
             
-            if not farmActive then return end
+            if not nightmareActive then return end
             
-            statusLabel1.Text = "🏆 Farm 1 - TITAN"
+            statusLabel1.Text = "🏆 Nightmare - TITAN"
             timerLabel1.Text = "⏱️ Fase: TITAN"
             timerLabel1.TextColor3 = Color3.fromRGB(255, 100, 100)
             
             currentWaitTime = 16
             local titanCount = 0
             
-            while farmActive do
+            while nightmareActive do
                 spawnTimeLabel1.Text = "🏆 Próximo Titan en " .. currentWaitTime .. "s"
                 
                 local waited = 0
-                while farmActive and waited < currentWaitTime do
+                while nightmareActive and waited < currentWaitTime do
                     task.wait(1)
                     waited = waited + 1
                     timerLabel1.Text = "⏱️ TITAN: INFINITO"
                     spawnTimeLabel1.Text = "🏆 Próximo Titan en " .. (currentWaitTime - waited) .. "s"
                 end
                 
-                if farmActive then
+                if nightmareActive then
                     pcall(function() RS.Functions.SpawnTower:InvokeServer("Upgraded Titan Cameraman", titanCFrame) end)
                     titanCount = titanCount + 1
-                    statusLabel1.Text = "🏆 Farm 1 Titan #" .. titanCount
+                    statusLabel1.Text = "🏆 Nightmare Titan #" .. titanCount
                     if currentWaitTime > minWaitTime then
                         currentWaitTime = math.max(minWaitTime, currentWaitTime - 1)
                     end
@@ -719,25 +721,27 @@ local function crearGUI()
     end
     
     -- =========================
-    -- FARM 2
+    -- CRAZY (CON MISMA ESTRUCTURA QUE NIGHTMARE)
     -- =========================
     
-    local function startFarm2()
-        farm2Active = true
+    local function startCrazy()
+        crazyActive = true
         
         task.spawn(function()
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                char.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(-116.770126, 6.841276, -175.873993))
-                task.wait(0.1)
-                pcall(function() RS.Events.StartElevator:FireServer("Elevator19") end)
-                statusLabel2.Text = "✅ TP Completado"
-                task.wait(2)
-            end
+            -- MISMA ESTRUCTURA QUE NIGHTMARE - AMBOS EVENTOS
+            local argsEnter = { [1] = "Elevator19" }
+            local argsStart = { [1] = "Elevator19" }
             
-            if not farm2Active then return end
+            pcall(function() 
+                RS.Events.EnterElevator:FireServer(unpack(argsEnter))
+            end)
+            pcall(function() 
+                RS.Events.StartElevator:FireServer(unpack(argsStart))
+            end)
             
-            statusLabel2.Text = "▶️ Farm 2 Activado"
+            if not crazyActive then return end
+            
+            statusLabel2.Text = "🌀 Crazy Activado"
             statusLabel2.TextColor3 = Color3.fromRGB(0, 255, 0)
             
             local scientistCFrame = CFrame.new(41.5543137, 82.593399, -44.0053787, 1, 0, 0, 0, 1, 0, 0, 0, 1)
@@ -753,14 +757,14 @@ local function crearGUI()
             end
             
             task.spawn(function()
-                while farm2Active do
+                while crazyActive do
                     pcall(function() RS.Events.VoteSkip:FireServer() end)
                     task.wait(0.05)
                 end
             end)
             
             task.spawn(function()
-                while farm2Active do
+                while crazyActive do
                     mejorarUnidad("Large Bunny TV Man")
                     mejorarUnidad("Scientist Cameraman")
                     mejorarUnidad("Mech Cameraman")
@@ -769,7 +773,7 @@ local function crearGUI()
                 end
             end)
             
-            statusLabel2.Text = "🐰 Fase 1: BUNNY (60s)"
+            statusLabel2.Text = "🐰 Crazy Fase 1: BUNNY (60s)"
             timerLabel2.Text = "⏱️ Fase: BUNNY"
             timerLabel2.TextColor3 = Color3.fromRGB(255, 200, 0)
             
@@ -777,14 +781,14 @@ local function crearGUI()
             local bunnyStartTime = tick()
             local bunnyCount = 0
             
-            while farm2Active and (tick() - bunnyStartTime) < 60 do
+            while crazyActive and (tick() - bunnyStartTime) < 60 do
                 local elapsed = tick() - bunnyStartTime
                 local timeLeft = math.max(0, 60 - elapsed)
                 timerLabel2.Text = "⏱️ BUNNY: " .. math.floor(timeLeft) .. "s"
                 spawnTimeLabel2.Text = "🐰 Bunny en " .. currentWaitTime2 .. "s"
                 
                 local waited = 0
-                while farm2Active and waited < currentWaitTime2 and (tick() - bunnyStartTime) < 60 do
+                while crazyActive and waited < currentWaitTime2 and (tick() - bunnyStartTime) < 60 do
                     task.wait(1)
                     waited = waited + 1
                     if (tick() - bunnyStartTime) < 60 then
@@ -793,10 +797,10 @@ local function crearGUI()
                     end
                 end
                 
-                if farm2Active and (tick() - bunnyStartTime) < 60 then
+                if crazyActive and (tick() - bunnyStartTime) < 60 then
                     pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame2) end)
                     bunnyCount = bunnyCount + 1
-                    statusLabel2.Text = "🐰 Bunny #" .. bunnyCount
+                    statusLabel2.Text = "🐰 Crazy Bunny #" .. bunnyCount
                     
                     if currentWaitTime2 > minWaitTime then
                         currentWaitTime2 = math.max(minWaitTime, currentWaitTime2 - 1)
@@ -805,23 +809,23 @@ local function crearGUI()
                 end
             end
             
-            if not farm2Active then return end
+            if not crazyActive then return end
             
-            statusLabel2.Text = "🤖 Fase 2: MECH (cada 3s) - 50s"
+            statusLabel2.Text = "🤖 Crazy Fase 2: MECH (cada 3s) - 50s"
             timerLabel2.Text = "⏱️ Fase: MECH 3s"
             timerLabel2.TextColor3 = Color3.fromRGB(100, 255, 150)
             
             local mechStartTime = tick()
             local mechCount = 0
             
-            while farm2Active and (tick() - mechStartTime) < 50 do
+            while crazyActive and (tick() - mechStartTime) < 50 do
                 local elapsed = tick() - mechStartTime
                 local timeLeft = math.max(0, 50 - elapsed)
                 timerLabel2.Text = "⏱️ MECH: " .. math.floor(timeLeft) .. "s"
                 spawnTimeLabel2.Text = "🤖 Mech en 3s"
                 
                 local waited = 0
-                while farm2Active and waited < 3 and (tick() - mechStartTime) < 50 do
+                while crazyActive and waited < 3 and (tick() - mechStartTime) < 50 do
                     task.wait(1)
                     waited = waited + 1
                     if (tick() - mechStartTime) < 50 then
@@ -830,43 +834,43 @@ local function crearGUI()
                     end
                 end
                 
-                if farm2Active and (tick() - mechStartTime) < 50 then
+                if crazyActive and (tick() - mechStartTime) < 50 then
                     pcall(function() RS.Functions.SpawnTower:InvokeServer("Mech Cameraman", mechCFrame2) end)
                     mechCount = mechCount + 1
-                    statusLabel2.Text = "🤖 Mech #" .. mechCount
+                    statusLabel2.Text = "🤖 Crazy Mech #" .. mechCount
                 end
             end
             
-            if not farm2Active then return end
+            if not crazyActive then return end
             
-            statusLabel2.Text = "🗑️ Eliminando Bunnies..."
+            statusLabel2.Text = "🗑️ Crazy - Eliminando Bunnies..."
             venderTodosLosBunnies()
-            statusLabel2.Text = "🗑️ Limpieza completada"
+            statusLabel2.Text = "🗑️ Crazy - Limpieza completada"
             task.wait(1)
             
-            if not farm2Active then return end
+            if not crazyActive then return end
             
-            statusLabel2.Text = "🚁 Fase 4: LARGE SPEAKER HELICOPTER (cada 10s)"
+            statusLabel2.Text = "🚁 Crazy Fase 4: LARGE SPEAKER HELICOPTER (cada 10s)"
             timerLabel2.Text = "⏱️ Fase: HELICOPTER"
             timerLabel2.TextColor3 = Color3.fromRGB(255, 150, 100)
             
             local helicopterCount = 0
             
-            while farm2Active do
+            while crazyActive do
                 spawnTimeLabel2.Text = "🚁 Helicopter en 10s"
                 timerLabel2.Text = "⏱️ HELICOPTER: INFINITO"
                 
                 local waited = 0
-                while farm2Active and waited < 10 do
+                while crazyActive and waited < 10 do
                     task.wait(1)
                     waited = waited + 1
                     spawnTimeLabel2.Text = "🚁 Helicopter en " .. (10 - waited) .. "s"
                 end
                 
-                if farm2Active then
+                if crazyActive then
                     pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Speaker Helicopter", helicopterCFrame) end)
                     helicopterCount = helicopterCount + 1
-                    statusLabel2.Text = "🚁 Large Speaker Helicopter #" .. helicopterCount
+                    statusLabel2.Text = "🚁 Crazy Helicopter #" .. helicopterCount
                 end
             end
         end)
@@ -876,49 +880,49 @@ local function crearGUI()
     -- BOTONES AUTOFARM
     -- =========================
     
-    farmBtn.MouseButton1Click:Connect(function()
-        farmActive = not farmActive
+    nightmareBtn.MouseButton1Click:Connect(function()
+        nightmareActive = not nightmareActive
         saveState()
-        if farmActive then
-            farmBtn.Text = "🌾 Detener Farm 1"
-            farmBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            startFarm1()
+        if nightmareActive then
+            nightmareBtn.Text = "🌙 Detener Nightmare"
+            nightmareBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            startNightmare()
         else
-            farmBtn.Text = "🌾 Activar Farm 1"
-            farmBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
-            statusLabel1.Text = "⏸️ Farm 1 Inactivo"
+            nightmareBtn.Text = "🌙 Activar Nightmare"
+            nightmareBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+            statusLabel1.Text = "🌙 Nightmare Inactivo"
             statusLabel1.TextColor3 = Color3.fromRGB(255, 255, 0)
-            timerLabel1.Text = "⏱️ Farm 1: Inactivo"
+            timerLabel1.Text = "⏱️ Nightmare: Inactivo"
             spawnTimeLabel1.Text = "🐰 Bunny: 16s"
         end
     end)
     
-    farmBtn2.MouseButton1Click:Connect(function()
-        farm2Active = not farm2Active
+    crazyBtn.MouseButton1Click:Connect(function()
+        crazyActive = not crazyActive
         saveState2()
-        if farm2Active then
-            farmBtn2.Text = "🌾 Detener Farm 2"
-            farmBtn2.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            startFarm2()
+        if crazyActive then
+            crazyBtn.Text = "🌀 Detener Crazy"
+            crazyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            startCrazy()
         else
-            farmBtn2.Text = "🌾 Activar Farm 2"
-            farmBtn2.BackgroundColor3 = Color3.fromRGB(50, 150, 200)
-            statusLabel2.Text = "⏸️ Farm 2 Inactivo"
+            crazyBtn.Text = "🌀 Activar Crazy"
+            crazyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 200)
+            statusLabel2.Text = "🌀 Crazy Inactivo"
             statusLabel2.TextColor3 = Color3.fromRGB(255, 255, 0)
-            timerLabel2.Text = "⏱️ Farm 2: Inactivo"
+            timerLabel2.Text = "⏱️ Crazy: Inactivo"
             spawnTimeLabel2.Text = "🐰 Bunny: 11s"
         end
     end)
     
     -- AUTO-INICIO
     if wasActive then
-        farmActive = true
-        task.spawn(function() task.wait(1); startFarm1() end)
+        nightmareActive = true
+        task.spawn(function() task.wait(1); startNightmare() end)
     end
     
     if wasActive2 then
-        farm2Active = true
-        task.spawn(function() task.wait(1.5); startFarm2() end)
+        crazyActive = true
+        task.spawn(function() task.wait(1.5); startCrazy() end)
     end
     
     -- OPTIMIZAR PAGE
@@ -1008,5 +1012,5 @@ LocalPlayer.CharacterAdded:Connect(function()
     updateGoldValue()
 end)
 
-print("✅ Griff Hub v9 cargado - Sistema de Firma incluido")
+print("✅ Griff Hub v9 cargado - Nightmare + Crazy + Sistema de Firma")
 print("✅ Ve a la pestaña '✍️ Firmar' para firmar tus unidades")
