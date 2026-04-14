@@ -607,15 +607,23 @@ local function crearGUI()
     signature.TextXAlignment = Enum.TextXAlignment.Center
     
     -- =========================
-    -- FARM 1 (CON STARTELEVATOR, SIN TELETRANSPORTE)
+    -- FARM 1 (CON ENTERELEVATOR Y STARTELEVATOR)
     -- =========================
     
     local function startFarm1()
         farmActive = true
         
         task.spawn(function()
-            -- Enviar evento StartElevator sin teletransportar
-            pcall(function() RS.Events.StartElevator:FireServer("Elevator14") end)
+            -- AMBOS EVENTOS AL MISMO TIEMPO
+            local argsEnter = { [1] = "Elevator16" }
+            local argsStart = { [1] = "Elevator16" }
+            
+            pcall(function() 
+                RS.Events.EnterElevator:FireServer(unpack(argsEnter))
+            end)
+            pcall(function() 
+                RS.Events.StartElevator:FireServer(unpack(argsStart))
+            end)
             
             if not farmActive then return end
             
