@@ -1,5 +1,5 @@
 -- =========================
--- GRIFF HUB v9 - CON SISTEMA DE FIRMA NORMAL
+-- GRIFF HUB v9 - CON SISTEMA DE FIRMA
 -- =========================
 
 -- 💤 ANTI AFK
@@ -21,7 +21,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local RunService = game:GetService("RunService")
 
 -- =========================
--- BLOQUEAR TODAS LAS NOTIFICACIONES DE ERROR
+-- BLOQUEAR NOTIFICACIONES DE ERROR
 -- =========================
 
 local TextEvent = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("TextEvent")
@@ -62,7 +62,7 @@ local currentWaitTime2 = 11
 local minWaitTime = 5
 
 -- =========================
--- SISTEMA DE GUARDADO DE FARMS
+-- SISTEMA DE GUARDADO
 -- =========================
 
 local SaveFileName = "GriffHub_SaveData_" .. LocalPlayer.UserId .. ".json"
@@ -113,23 +113,80 @@ local function loadState2()
 end
 
 -- =========================
--- VARIABLES PARA LA PÁGINA FUN Y FIRMA
+-- SISTEMA DE FIRMA
 -- =========================
 
-local signEnabled = false
 local signing = false
-local UnitsToSign = {}
-local UnitsToSignAmount = 0
+local signedUnits = {}
+local selectedUnitForSign = nil
+
+local function showSignMessage(text, color)
+    local screenGui = CoreGui:FindFirstChild("GriffHubV9")
+    if not screenGui then return end
+    
+    local msg = Instance.new("TextLabel", screenGui)
+    msg.Size = UDim2.new(0, 350, 0, 40)
+    msg.Position = UDim2.new(0.5, -175, 0.4, 0)
+    msg.BackgroundColor3 = color or Color3.fromRGB(138, 43, 226)
+    msg.BackgroundTransparency = 0.2
+    msg.TextColor3 = Color3.new(1, 1, 1)
+    msg.Font = Enum.Font.GothamBold
+    msg.TextSize = 14
+    msg.Text = text
+    msg.TextXAlignment = Enum.TextXAlignment.Center
+    msg.ZIndex = 200
+    Instance.new("UICorner", msg).CornerRadius = UDim.new(0, 8)
+    task.delay(2.5, function() msg:Destroy() end)
+end
+
+-- Función para firmar una unidad
+local function signUnit(unitName)
+    local playerName = LocalPlayer.Name
+    signedUnits[unitName] = {
+        signedBy = playerName,
+        signedAt = tick()
+    }
+    showSignMessage("✍️ " .. unitName .. " firmada por " .. playerName, Color3.fromRGB(0, 255, 0))
+    
+    -- Buscar la torre en el juego y agregar indicador visual
+    local towers = WS:FindFirstChild("Towers")
+    if towers then
+        for _, tower in pairs(towers:GetChildren()) do
+            local config = tower:FindFirstChild("Config")
+            if config and config:FindFirstChild("TowerName") and config.TowerName.Value == unitName then
+                local head = tower.PrimaryPart or tower:FindFirstChild("HumanoidRootPart")
+                if head and not head:FindFirstChild("SignatureTag") then
+                    local billboard = Instance.new("BillboardGui", head)
+                    billboard.Name = "SignatureTag"
+                    billboard.Size = UDim2.new(0, 100, 0, 30)
+                    billboard.StudsOffset = Vector3.new(0, 3, 0)
+                    billboard.AlwaysOnTop = true
+                    
+                    local label = Instance.new("TextLabel", billboard)
+                    label.Size = UDim2.new(1, 0, 1, 0)
+                    label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                    label.BackgroundTransparency = 0.4
+                    label.TextColor3 = Color3.fromRGB(255, 215, 0)
+                    label.Font = Enum.Font.GothamBold
+                    label.TextSize = 12
+                    label.Text = "✍️ " .. playerName
+                    label.TextScaled = true
+                    Instance.new("UICorner", label).CornerRadius = UDim.new(0, 4)
+                end
+                break
+            end
+        end
+    end
+end
 
 -- =========================
--- FUNCIÓN PARA CREAR LA GUI (PERSISTENTE)
+-- CREAR GUI
 -- =========================
 
 local screenGui = nil
 local goldDisplay = nil
 
 local function crearGUI()
-    -- Si ya existe una GUI, destruirla primero para evitar duplicados
     if screenGui and screenGui.Parent then
         screenGui:Destroy()
     end
@@ -138,8 +195,6 @@ local function crearGUI()
     screenGui.Name = "GriffHubV9"
     screenGui.ResetOnSpawn = false
     screenGui.Parent = CoreGui
-    
-    -- Asegurar que la GUI nunca se destruya
     screenGui:SetAttribute("Persistent", true)
     
     local toggleBtn = Instance.new("TextButton", screenGui)
@@ -154,7 +209,7 @@ local function crearGUI()
     Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 8)
     
     local mainFrame = Instance.new("Frame", screenGui)
-    mainFrame.Size = UDim2.new(0, 450, 0, 600)
+    mainFrame.Size = UDim2.new(0, 450, 0, 650)
     mainFrame.Position = UDim2.new(0.32, 0, 0.15, 0)
     mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,35)
     mainFrame.BorderSizePixel = 0
@@ -163,7 +218,7 @@ local function crearGUI()
     mainFrame.Draggable = true
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
     
-    -- DISPLAY DE ORO PERSISTENTE
+    -- DISPLAY DE ORO
     goldDisplay = Instance.new("TextLabel", screenGui)
     goldDisplay.Name = "GoldDisplay"
     goldDisplay.Size = UDim2.new(0, 150, 0, 35)
@@ -220,7 +275,7 @@ local function crearGUI()
     end)
     
     -- =========================
-    -- TABS Y PÁGINAS
+    -- TABS
     -- =========================
     
     local tabs = Instance.new("Frame", mainFrame)
@@ -247,7 +302,7 @@ local function crearGUI()
     end
     
     local farmTab = newTab("🌾 AutoFarm")
-    local funTab = newTab("🎮 Fun")
+    local signTab = newTab("✍️ Firmar")
     local optimizarTab = newTab("⚡ Optimizar")
     
     local function newPage()
@@ -261,25 +316,25 @@ local function crearGUI()
     end
     
     local farmPage = newPage()
-    local funPage = newPage()
+    local signPage = newPage()
     local optimizarPage = newPage()
     farmPage.Visible = true
     
     farmTab.MouseButton1Click:Connect(function()
         farmPage.Visible = true
-        funPage.Visible = false
+        signPage.Visible = false
         optimizarPage.Visible = false
     end)
     
-    funTab.MouseButton1Click:Connect(function()
+    signTab.MouseButton1Click:Connect(function()
         farmPage.Visible = false
-        funPage.Visible = true
+        signPage.Visible = true
         optimizarPage.Visible = false
     end)
     
     optimizarTab.MouseButton1Click:Connect(function()
         farmPage.Visible = false
-        funPage.Visible = false
+        signPage.Visible = false
         optimizarPage.Visible = true
     end)
     
@@ -298,91 +353,119 @@ local function crearGUI()
     end
     
     -- =========================
-    -- FUNCIONES DEL SISTEMA DE FIRMA
+    -- PÁGINA DE FIRMA
     -- =========================
     
-    local function showTempMessage(text, color)
-        local msg = Instance.new("TextLabel", screenGui)
-        msg.Size = UDim2.new(0, 300, 0, 40)
-        msg.Position = UDim2.new(0.5, -150, 0.4, 0)
-        msg.BackgroundColor3 = color or Color3.fromRGB(138, 43, 226)
-        msg.BackgroundTransparency = 0.2
-        msg.TextColor3 = Color3.new(1, 1, 1)
-        msg.Font = Enum.Font.GothamBold
-        msg.TextSize = 14
-        msg.Text = text
-        msg.TextXAlignment = Enum.TextXAlignment.Center
-        Instance.new("UICorner", msg).CornerRadius = UDim.new(0, 8)
-        task.delay(2.5, function() msg:Destroy() end)
-        return msg
-    end
+    local signModeBtn = pageButton(signPage, 10, "✍️ Activar Modo Firma", Color3.fromRGB(186, 85, 211))
+    local signStatus = Instance.new("TextLabel", signPage)
+    signStatus.Size = UDim2.new(0.92, 0, 0, 25)
+    signStatus.Position = UDim2.new(0.04, 0, 0, 60)
+    signStatus.BackgroundTransparency = 1
+    signStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+    signStatus.Font = Enum.Font.Gotham
+    signStatus.TextSize = 12
+    signStatus.Text = "✍️ Modo Firma: ❌ OFF"
+    signStatus.TextXAlignment = Enum.TextXAlignment.Center
     
-    -- Función para intentar firmar unidades (simulada visualmente)
-    local function trySignUnits()
-        if UnitsToSignAmount > 0 then
-            -- Crear efecto visual de firma
-            for id, data in pairs(UnitsToSign) do
-                showTempMessage("✍️ Unidad firmada por " .. LocalPlayer.Name, Color3.fromRGB(0, 150, 0))
+    local selectedLabel = Instance.new("TextLabel", signPage)
+    selectedLabel.Size = UDim2.new(0.92, 0, 0, 25)
+    selectedLabel.Position = UDim2.new(0.04, 0, 0, 90)
+    selectedLabel.BackgroundTransparency = 1
+    selectedLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+    selectedLabel.Font = Enum.Font.Gotham
+    selectedLabel.TextSize = 12
+    selectedLabel.Text = "📝 Ninguna unidad seleccionada"
+    selectedLabel.TextXAlignment = Enum.TextXAlignment.Center
+    
+    -- Lista de torres del jugador para firmar
+    local towersList = Instance.new("ScrollingFrame", signPage)
+    towersList.Size = UDim2.new(0.92, 0, 0, 300)
+    towersList.Position = UDim2.new(0.04, 0, 0, 125)
+    towersList.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    towersList.BackgroundTransparency = 0.5
+    towersList.BorderSizePixel = 0
+    towersList.ScrollBarThickness = 6
+    Instance.new("UICorner", towersList).CornerRadius = UDim.new(0, 8)
+    
+    local towersLayout = Instance.new("UIListLayout", towersList)
+    towersLayout.Padding = UDim.new(0, 5)
+    
+    -- Actualizar lista de torres
+    local function updateTowersList()
+        for _, child in pairs(towersList:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
             end
-            table.clear(UnitsToSign)
-            UnitsToSignAmount = 0
-            signing = false
-            
-            -- Buscar y actualizar la GUI del inventario si existe
-            local inventoryFrame = PlayerGui:FindFirstChild("Inventory", true)
-            if inventoryFrame then
-                local signFrame = inventoryFrame:FindFirstChild("Sign", true)
-                if signFrame then
-                    signFrame.Visible = signEnabled
-                end
-            end
-            
-            showTempMessage("✅ Firmas aplicadas correctamente!", Color3.fromRGB(0, 255, 0))
-            return true
         end
-        return false
-    end
-    
-    -- =========================
-    -- FUNCIÓN VERIFICAR SI EXISTE UNA TORRE
-    -- =========================
-    
-    local function towerExists(towerName)
+        
         local towers = WS:FindFirstChild("Towers")
-        if not towers then return false end
+        if not towers then return end
         
         for _, tower in pairs(towers:GetChildren()) do
             local config = tower:FindFirstChild("Config")
             if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
-                local tName = config:FindFirstChild("TowerName")
-                if tName and tName.Value == towerName then
-                    return true
+                local towerName = config:FindFirstChild("TowerName")
+                if towerName then
+                    local btn = Instance.new("TextButton", towersList)
+                    btn.Size = UDim2.new(1, -10, 0, 40)
+                    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+                    btn.TextColor3 = Color3.new(1, 1, 1)
+                    btn.Font = Enum.Font.GothamBold
+                    btn.TextSize = 14
+                    btn.Text = towerName.Value
+                    btn.BorderSizePixel = 0
+                    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+                    
+                    -- Verificar si ya está firmada
+                    if signedUnits[towerName.Value] then
+                        btn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+                        btn.Text = "✅ " + towerName.Value + " (Firmada por " + signedUnits[towerName.Value].signedBy + ")"
+                    end
+                    
+                    btn.MouseButton1Click:Connect(function()
+                        if signing then
+                            selectedUnitForSign = towerName.Value
+                            selectedLabel.Text = "📝 Unidad seleccionada: " + towerName.Value
+                            showSignMessage("✍️ Unidad seleccionada: " .. towerName.Value .. ". Haz clic en 'Aplicar Firma'", Color3.fromRGB(138, 43, 226))
+                        else
+                            showSignMessage("❌ Activa el Modo Firma primero", Color3.fromRGB(200, 50, 50))
+                        end
+                    end)
                 end
             end
         end
-        return false
     end
     
-    -- =========================
-    -- FUNCIÓN CONTAR TORRES DEL JUGADOR
-    -- =========================
+    local applySignBtn = pageButton(signPage, 440, "✍️ Aplicar Firma", Color3.fromRGB(50, 150, 200))
     
-    local function countPlayerTowers()
-        local towers = WS:FindFirstChild("Towers")
-        if not towers then return 0 end
-        
-        local count = 0
-        for _, tower in pairs(towers:GetChildren()) do
-            local config = tower:FindFirstChild("Config")
-            if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
-                count = count + 1
-            end
+    signModeBtn.MouseButton1Click:Connect(function()
+        signing = not signing
+        if signing then
+            signStatus.Text = "✍️ Modo Firma: ✅ ON"
+            signStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
+            showSignMessage("✍️ Modo Firma Activado - Selecciona una unidad", Color3.fromRGB(138, 43, 226))
+            updateTowersList()
+        else
+            signStatus.Text = "✍️ Modo Firma: ❌ OFF"
+            signStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
+            selectedLabel.Text = "📝 Ninguna unidad seleccionada"
+            selectedUnitForSign = nil
         end
-        return count
-    end
+    end)
+    
+    applySignBtn.MouseButton1Click:Connect(function()
+        if selectedUnitForSign then
+            signUnit(selectedUnitForSign)
+            selectedLabel.Text = "📝 Ninguna unidad seleccionada"
+            selectedUnitForSign = nil
+            updateTowersList()
+        else
+            showSignMessage("❌ No hay ninguna unidad seleccionada", Color3.fromRGB(200, 50, 50))
+        end
+    end)
     
     -- =========================
-    -- FUNCIÓN MEJORA UNIDADES
+    -- FUNCIONES DE AUTOFARM
     -- =========================
     
     local function mejorarUnidad(nombreUnidad)
@@ -407,10 +490,6 @@ local function crearGUI()
         end
     end
     
-    -- =========================
-    -- FUNCIÓN VENDER TODOS LOS BUNNIES
-    -- =========================
-    
     local function venderTodosLosBunnies()
         local sellTower = RS.Events:FindFirstChild("SellTower") or RS.Functions:FindFirstChild("SellTower")
         if not sellTower then return 0 end
@@ -433,7 +512,7 @@ local function crearGUI()
     end
     
     -- =========================
-    -- 🌾 AUTOFARM PAGE - BOTÓN 1
+    -- AUTOFARM PAGE
     -- =========================
     
     local wasActive = loadState()
@@ -476,10 +555,6 @@ local function crearGUI()
     spawnTimeLabel1.Text = "🐰 Bunny: 16s"
     spawnTimeLabel1.TextXAlignment = Enum.TextXAlignment.Center
     
-    -- =========================
-    -- 🌾 AUTOFARM PAGE - BOTÓN 2
-    -- =========================
-    
     local farmBtn2
     if wasActive2 then
         farmBtn2 = pageButton(farmPage, 145, "🌾 Detener Farm 2", Color3.fromRGB(200, 50, 50))
@@ -518,83 +593,7 @@ local function crearGUI()
     spawnTimeLabel2.TextXAlignment = Enum.TextXAlignment.Center
     
     -- =========================
-    -- 🎮 FUN PAGE - BOTÓN DE FIRMA
-    -- =========================
-    
-    -- Botón para activar el modo firma
-    local signModeBtn = pageButton(funPage, 10, "✍️ Modo Firma", Color3.fromRGB(186, 85, 211))
-    
-    -- Estado del modo firma
-    local signModeStatus = Instance.new("TextLabel", funPage)
-    signModeStatus.Size = UDim2.new(0.92, 0, 0, 25)
-    signModeStatus.Position = UDim2.new(0.04, 0, 0, 60)
-    signModeStatus.BackgroundTransparency = 1
-    signModeStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
-    signModeStatus.Font = Enum.Font.Gotham
-    signModeStatus.TextSize = 11
-    signModeStatus.Text = "✍️ Modo Firma: ❌ OFF"
-    signModeStatus.TextXAlignment = Enum.TextXAlignment.Center
-    
-    -- Botón para aplicar firmas
-    local applySignBtn = pageButton(funPage, 85, "✅ Aplicar Firmas", Color3.fromRGB(50, 150, 200))
-    
-    local applySignStatus = Instance.new("TextLabel", funPage)
-    applySignStatus.Size = UDim2.new(0.92, 0, 0, 25)
-    applySignStatus.Position = UDim2.new(0.04, 0, 0, 135)
-    applySignStatus.BackgroundTransparency = 1
-    applySignStatus.TextColor3 = Color3.fromRGB(255, 200, 100)
-    applySignStatus.Font = Enum.Font.Gotham
-    applySignStatus.TextSize = 11
-    applySignStatus.Text = "📝 Unidades seleccionadas: 0"
-    applySignStatus.TextXAlignment = Enum.TextXAlignment.Center
-    
-    -- Botón para Sign Frame visual
-    local funSignBtn = pageButton(funPage, 160, "📜 Toggle Sign Frame", Color3.fromRGB(186, 85, 211))
-    
-    local signStatus = Instance.new("TextLabel", funPage)
-    signStatus.Size = UDim2.new(0.92, 0, 0, 25)
-    signStatus.Position = UDim2.new(0.04, 0, 0, 210)
-    signStatus.BackgroundTransparency = 1
-    signStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
-    signStatus.Font = Enum.Font.Gotham
-    signStatus.TextSize = 11
-    signStatus.Text = "📜 Sign Frame: ❌ OFF"
-    signStatus.TextXAlignment = Enum.TextXAlignment.Center
-    
-    -- Acción del botón Modo Firma
-    signModeBtn.MouseButton1Click:Connect(function()
-        signing = not signing
-        if signing then
-            signModeStatus.Text = "✍️ Modo Firma: ✅ ON"
-            signModeStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
-            showTempMessage("✍️ Modo Firma Activado - Haz clic en unidades para firmar", Color3.fromRGB(138, 43, 226))
-        else
-            signModeStatus.Text = "✍️ Modo Firma: ❌ OFF"
-            signModeStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
-            showTempMessage("✍️ Modo Firma Desactivado", Color3.fromRGB(200, 50, 50))
-        end
-    end)
-    
-    -- Acción del botón Aplicar Firmas
-    applySignBtn.MouseButton1Click:Connect(function()
-        trySignUnits()
-        applySignStatus.Text = "📝 Unidades seleccionadas: 0"
-    end)
-    
-    -- Acción del botón Sign Frame
-    funSignBtn.MouseButton1Click:Connect(function()
-        signEnabled = not signEnabled
-        if signEnabled then
-            signStatus.Text = "📜 Sign Frame: ✅ ON"
-            signStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
-        else
-            signStatus.Text = "📜 Sign Frame: ❌ OFF"
-            signStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
-        end
-    end)
-    
-    -- =========================
-    -- FIRMA (CRÉDITOS)
+    -- FIRMA
     -- =========================
     
     local signature = Instance.new("TextLabel", mainFrame)
@@ -718,7 +717,7 @@ local function crearGUI()
     end
     
     -- =========================
-    -- FARM 2 (CON HELICOPTERO CADA 10 SEGUNDOS)
+    -- FARM 2
     -- =========================
     
     local function startFarm2()
@@ -744,7 +743,6 @@ local function crearGUI()
             local mechCFrame2 = CFrame.new(7.5827179, 88.5881958, -28.159481, 1, 0, 0, 0, 1, 0, 0, 0, 1)
             local helicopterCFrame = CFrame.new(12.570381164550781, 85.38301086425781, -0.2645606994628906, -4.371138828673793e-08, 0, 1, 0, 1, 0, -1, 0, -4.371138828673793e-08)
             
-            -- Colocar Scientists
             statusLabel2.Text = "🔬 Colocando 4 Scientists..."
             for i = 1, 4 do
                 pcall(function() RS.Functions.SpawnTower:InvokeServer("Scientist Cameraman", scientistCFrame) end)
@@ -752,7 +750,6 @@ local function crearGUI()
                 task.wait(0.3)
             end
             
-            -- VoteSkip infinito
             task.spawn(function()
                 while farm2Active do
                     pcall(function() RS.Events.VoteSkip:FireServer() end)
@@ -760,7 +757,6 @@ local function crearGUI()
                 end
             end)
             
-            -- Mejora automática
             task.spawn(function()
                 while farm2Active do
                     mejorarUnidad("Large Bunny TV Man")
@@ -771,7 +767,6 @@ local function crearGUI()
                 end
             end)
             
-            -- ===== FASE 1: BUNNY (60 segundos) =====
             statusLabel2.Text = "🐰 Fase 1: BUNNY (60s)"
             timerLabel2.Text = "⏱️ Fase: BUNNY"
             timerLabel2.TextColor3 = Color3.fromRGB(255, 200, 0)
@@ -810,7 +805,6 @@ local function crearGUI()
             
             if not farm2Active then return end
             
-            -- ===== FASE 2: MECH CADA 3 SEGUNDOS (50 SEGUNDOS) =====
             statusLabel2.Text = "🤖 Fase 2: MECH (cada 3s) - 50s"
             timerLabel2.Text = "⏱️ Fase: MECH 3s"
             timerLabel2.TextColor3 = Color3.fromRGB(100, 255, 150)
@@ -843,7 +837,6 @@ local function crearGUI()
             
             if not farm2Active then return end
             
-            -- ===== FASE 3: ELIMINAR BUNNIES =====
             statusLabel2.Text = "🗑️ Eliminando Bunnies..."
             venderTodosLosBunnies()
             statusLabel2.Text = "🗑️ Limpieza completada"
@@ -851,7 +844,6 @@ local function crearGUI()
             
             if not farm2Active then return end
             
-            -- ===== FASE 4: LARGE SPEAKER HELICOPTER CADA 10 SEGUNDOS =====
             statusLabel2.Text = "🚁 Fase 4: LARGE SPEAKER HELICOPTER (cada 10s)"
             timerLabel2.Text = "⏱️ Fase: HELICOPTER"
             timerLabel2.TextColor3 = Color3.fromRGB(255, 150, 100)
@@ -916,10 +908,7 @@ local function crearGUI()
         end
     end)
     
-    -- =========================
     -- AUTO-INICIO
-    -- =========================
-    
     if wasActive then
         farmActive = true
         task.spawn(function() task.wait(1); startFarm1() end)
@@ -930,10 +919,7 @@ local function crearGUI()
         task.spawn(function() task.wait(1.5); startFarm2() end)
     end
     
-    -- =========================
     -- OPTIMIZAR PAGE
-    -- =========================
-    
     local boostBtn = pageButton(optimizarPage, 10, "⚡ Boost FPS", Color3.fromRGB(186, 85, 211))
     local rejoinBtn = pageButton(optimizarPage, 70, "🔁 Rejoin", Color3.fromRGB(138, 43, 226))
     
@@ -961,21 +947,7 @@ local function crearGUI()
 end
 
 -- =========================
--- FUNCIÓN DE ACTUALIZACIÓN PARA SIGN FRAME
--- =========================
-
-RunService.RenderStepped:Connect(function()
-    local inventory = PlayerGui:FindFirstChild("Inventory", true)
-    if inventory then
-        local signFrame = inventory:FindFirstChild("Sign", true)
-        if signFrame then
-            signFrame.Visible = signEnabled
-        end
-    end
-end)
-
--- =========================
--- FUNCIÓN PARA ACTUALIZAR EL ORO EN LA GUI (PERSISTENTE)
+-- ACTUALIZAR ORO
 -- =========================
 
 local function updateGoldValue()
@@ -1023,7 +995,7 @@ local function updateGoldValue()
 end
 
 -- =========================
--- INICIAR TODO
+-- INICIAR
 -- =========================
 
 crearGUI()
@@ -1034,5 +1006,5 @@ LocalPlayer.CharacterAdded:Connect(function()
     updateGoldValue()
 end)
 
-print("✅ Griff Hub v9 cargado - Sistema de Firma incluido (sin grupos)")
-print("✅ Ve a la pestaña 'Fun' y activa 'Modo Firma' para firmar unidades")
+print("✅ Griff Hub v9 cargado - Sistema de Firma incluido")
+print("✅ Ve a la pestaña '✍️ Firmar' para firmar tus unidades")
