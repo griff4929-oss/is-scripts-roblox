@@ -1,5 +1,5 @@
 -- =========================
--- GRIFF HUB v9 - ORION EDITION
+-- GRIFF HUB v9 - ORION EDITION CON GUARDADO MANUAL
 -- =========================
 
 -- Cargar Orion Library
@@ -19,6 +19,61 @@ local currentWaitTime = 16
 local currentWaitTime2 = 11
 local minWaitTime = 5
 local farmTasks = {}
+
+-- =========================
+-- SISTEMA DE GUARDADO MANUAL
+-- =========================
+
+local SaveFolder = "GriffHub"
+local SaveFile = SaveFolder .. "/Config.json"
+
+-- Crear carpeta si no existe
+if not isfolder then
+    print("⚠️ Este ejecutor no soporta writefile, los ajustes no se guardarán")
+else
+    if not isfolder(SaveFolder) then
+        makefolder(SaveFolder)
+    end
+end
+
+-- Guardar estado
+local function saveState()
+    if not writefile then return end
+    
+    local data = {
+        nightmareActive = nightmareActive,
+        crazyActive = crazyActive
+    }
+    local success, encoded = pcall(function()
+        return game:GetService("HttpService"):JSONEncode(data)
+    end)
+    if success then
+        pcall(function()
+            writefile(SaveFile, encoded)
+        end)
+    end
+end
+
+-- Cargar estado
+local function loadState()
+    if not readfile then return end
+    
+    local success, content = pcall(function()
+        return readfile(SaveFile)
+    end)
+    if success and content then
+        local success2, data = pcall(function()
+            return game:GetService("HttpService"):JSONDecode(content)
+        end)
+        if success2 and data then
+            nightmareActive = data.nightmareActive or false
+            crazyActive = data.crazyActive or false
+        end
+    end
+end
+
+-- Cargar estado al iniciar
+loadState()
 
 -- =========================
 -- ANTI AFK
@@ -83,6 +138,7 @@ end
 
 local function stopNightmare()
     nightmareActive = false
+    saveState()
     if farmTasks.nightmare then
         task.cancel(farmTasks.nightmare)
         farmTasks.nightmare = nil
@@ -92,6 +148,7 @@ end
 local function startNightmare()
     if nightmareActive then return end
     nightmareActive = true
+    saveState()
     
     farmTasks.nightmare = task.spawn(function()
         local argsEnter = { [1] = "Elevator16" }
@@ -169,6 +226,7 @@ end
 
 local function stopCrazy()
     crazyActive = false
+    saveState()
     if farmTasks.crazy then
         task.cancel(farmTasks.crazy)
         farmTasks.crazy = nil
@@ -178,6 +236,7 @@ end
 local function startCrazy()
     if crazyActive then return end
     crazyActive = true
+    saveState()
     
     farmTasks.crazy = task.spawn(function()
         local argsEnter = { [1] = "Elevator19" }
@@ -281,7 +340,7 @@ end
 local Window = OrionLib:MakeWindow({
     Name = "🥚 Griff Hub v9",
     HidePremium = false,
-    SaveConfig = true,
+    SaveConfig = false,  -- Desactivamos el guardado de Orion
     ConfigFolder = "GriffHub",
     IntroEnabled = false
 })
@@ -300,7 +359,7 @@ FarmTab:AddSection({
 
 FarmTab:AddToggle({
     Name = "Activar Nightmare",
-    Default = false,
+    Default = nightmareActive,
     Callback = function(Value)
         if Value then
             startNightmare()
@@ -317,7 +376,7 @@ FarmTab:AddSection({
 
 FarmTab:AddToggle({
     Name = "Activar Crazy",
-    Default = false,
+    Default = crazyActive,
     Callback = function(Value)
         if Value then
             startCrazy()
@@ -373,9 +432,9 @@ OptimizeTab:AddButton({
 -- Notificación de inicio
 OrionLib:MakeNotification({
     Name = "Griff Hub v9",
-    Content = "¡Interfaz cargada correctamente!",
+    Content = "¡Interfaz cargada correctamente! (Guardado manual activado)",
     Image = "rbxassetid://4483345998",
     Time = 5
 })
 
-print("✅ Griff Hub v9 cargado con Orion Library")
+print("✅ Griff Hub v9 cargado - Guardado manual activado")
