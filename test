@@ -333,18 +333,6 @@ local function startCrazy()
 end
 
 -- =========================
--- ACTUALIZAR ORO
--- =========================
-
-local function updateGoldDisplay()
-    local goldValue = LocalPlayer:FindFirstChild("Gold")
-    if goldValue then
-        return "💰 $" .. goldValue.Value
-    end
-    return "💰 $0"
-end
-
--- =========================
 -- CREAR INTERFAZ CON RAYFIELD
 -- =========================
 
@@ -352,7 +340,7 @@ local Window = Rayfield:CreateWindow({
     Name = "🥚 Griff Hub v9",
     Icon = 0,
     LoadingTitle = "Griff Hub",
-    LoadingSubtitle = "by TuNombre",
+    LoadingSubtitle = "Nightmare + Crazy",
     Theme = "Default",
     ConfigurationSaving = {
         Enabled = true,
@@ -397,19 +385,6 @@ local CrazyToggle = MainTab:CreateToggle({
         end
     end,
 })
-
--- SECCIÓN INFORMACIÓN
-local InfoSection = MainTab:CreateSection("📊 Información")
-
-local GoldLabel = MainTab:CreateLabel("💰 Cargando oro...")
-
--- Actualizar oro periódicamente
-task.spawn(function()
-    while true do
-        GoldLabel:Set(updateGoldDisplay())
-        task.wait(1)
-    end
-end)
 
 -- Pestaña de Optimización
 local OptimizeTab = Window:CreateTab("⚡ Optimizar", 0)
