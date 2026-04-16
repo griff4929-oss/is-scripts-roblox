@@ -2,15 +2,19 @@
 -- GRIFF HUB v9 - RAYFIELD EDITION
 -- =========================
 
--- Cargar Rayfield
-loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+-- Cargar Rayfield y esperar a que cargue
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+-- Esperar a que Rayfield esté listo
+while not Rayfield or not Rayfield:Loaded() do
+    task.wait()
+end
 
 -- Servicios
 local RS = game:GetService("ReplicatedStorage")
 local WS = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
 local Lighting = game:GetService("Lighting")
 
 -- Variables Globales
@@ -19,7 +23,7 @@ local crazyActive = false
 local currentWaitTime = 16
 local currentWaitTime2 = 11
 local minWaitTime = 5
-local farmTasks = {} -- Para almacenar los threads y poder detenerlos
+local farmTasks = {}
 
 -- =========================
 -- ANTI AFK
@@ -112,7 +116,7 @@ local function venderTodosLosBunnies()
 end
 
 -- =========================
--- NIGHTMARE (antes Farm 1)
+-- NIGHTMARE
 -- =========================
 
 local function stopNightmare()
@@ -128,7 +132,6 @@ local function startNightmare()
     nightmareActive = true
     
     farmTasks.nightmare = task.spawn(function()
-        -- Enviar ambos eventos
         local argsEnter = { [1] = "Elevator16" }
         local argsStart = { [1] = "Elevator16" }
         
@@ -144,7 +147,6 @@ local function startNightmare()
         local bunnyCFrame = CFrame.new(-25.735321, 86.0418549, -85.5302887, 1, 0, 0, 0, 1, 0, 0, 0, 1)
         local titanCFrame = CFrame.new(-47.0388031, 90.3418045, -86.8553925, 1, 0, 0, 0, 1, 0, 0, 0, 1)
         
-        -- Hilo para VoteSkip
         task.spawn(function()
             while nightmareActive do
                 pcall(function() RS.Events.VoteSkip:FireServer() end)
@@ -152,7 +154,6 @@ local function startNightmare()
             end
         end)
         
-        -- Hilo para mejorar unidades
         task.spawn(function()
             while nightmareActive do
                 mejorarUnidad("Large Bunny TV Man")
@@ -165,7 +166,6 @@ local function startNightmare()
         local bunnyStartTime = tick()
         local bunnyCount = 0
         
-        -- Fase Bunny (60 segundos)
         while nightmareActive and (tick() - bunnyStartTime) < 60 do
             local waited = 0
             while nightmareActive and waited < currentWaitTime and (tick() - bunnyStartTime) < 60 do
@@ -187,7 +187,6 @@ local function startNightmare()
         currentWaitTime = 16
         local titanCount = 0
         
-        -- Fase Titan (infinita)
         while nightmareActive do
             local waited = 0
             while nightmareActive and waited < currentWaitTime do
@@ -207,7 +206,7 @@ local function startNightmare()
 end
 
 -- =========================
--- CRAZY (antes Farm 2) - Misma estructura que Nightmare
+-- CRAZY
 -- =========================
 
 local function stopCrazy()
@@ -223,7 +222,6 @@ local function startCrazy()
     crazyActive = true
     
     farmTasks.crazy = task.spawn(function()
-        -- Enviar ambos eventos (misma estructura que Nightmare)
         local argsEnter = { [1] = "Elevator19" }
         local argsStart = { [1] = "Elevator19" }
         
@@ -241,13 +239,11 @@ local function startCrazy()
         local mechCFrame2 = CFrame.new(7.5827179, 88.5881958, -28.159481, 1, 0, 0, 0, 1, 0, 0, 0, 1)
         local helicopterCFrame = CFrame.new(12.570381164550781, 85.38301086425781, -0.2645606994628906, -4.371138828673793e-08, 0, 1, 0, 1, 0, -1, 0, -4.371138828673793e-08)
         
-        -- Colocar 4 Scientists
         for i = 1, 4 do
             pcall(function() RS.Functions.SpawnTower:InvokeServer("Scientist Cameraman", scientistCFrame) end)
             task.wait(0.3)
         end
         
-        -- Hilo para VoteSkip
         task.spawn(function()
             while crazyActive do
                 pcall(function() RS.Events.VoteSkip:FireServer() end)
@@ -255,7 +251,6 @@ local function startCrazy()
             end
         end)
         
-        -- Hilo para mejorar unidades
         task.spawn(function()
             while crazyActive do
                 mejorarUnidad("Large Bunny TV Man")
@@ -270,7 +265,6 @@ local function startCrazy()
         local bunnyStartTime = tick()
         local bunnyCount = 0
         
-        -- Fase Bunny (60 segundos)
         while crazyActive and (tick() - bunnyStartTime) < 60 do
             local waited = 0
             while crazyActive and waited < currentWaitTime2 and (tick() - bunnyStartTime) < 60 do
@@ -289,7 +283,6 @@ local function startCrazy()
         
         if not crazyActive then return end
         
-        -- Fase Mech (50 segundos, cada 3s)
         local mechStartTime = tick()
         local mechCount = 0
         
@@ -308,13 +301,11 @@ local function startCrazy()
         
         if not crazyActive then return end
         
-        -- Limpiar bunnies
         venderTodosLosBunnies()
         task.wait(1)
         
         if not crazyActive then return end
         
-        -- Fase Helicopter (infinita, cada 10s)
         local helicopterCount = 0
         
         while crazyActive do
@@ -351,13 +342,13 @@ local Window = Rayfield:CreateWindow({
     SaveSettings = true
 })
 
--- Pestaña principal (AutoFarm)
+-- Pestaña principal
 local MainTab = Window:CreateTab("🌾 AutoFarm", 0)
 
 -- SECCIÓN NIGHTMARE
-local NightmareSection = MainTab:CreateSection("🌙 Nightmare")
+MainTab:CreateSection("🌙 Nightmare")
 
-local NightmareToggle = MainTab:CreateToggle({
+MainTab:CreateToggle({
     Name = "Activar Nightmare",
     CurrentValue = false,
     Flag = "NightmareToggle",
@@ -371,9 +362,9 @@ local NightmareToggle = MainTab:CreateToggle({
 })
 
 -- SECCIÓN CRAZY
-local CrazySection = MainTab:CreateSection("🌀 Crazy")
+MainTab:CreateSection("🌀 Crazy")
 
-local CrazyToggle = MainTab:CreateToggle({
+MainTab:CreateToggle({
     Name = "Activar Crazy",
     CurrentValue = false,
     Flag = "CrazyToggle",
@@ -389,9 +380,9 @@ local CrazyToggle = MainTab:CreateToggle({
 -- Pestaña de Optimización
 local OptimizeTab = Window:CreateTab("⚡ Optimizar", 0)
 
-local OptimizeSection = OptimizeTab:CreateSection("Optimizaciones")
+OptimizeTab:CreateSection("Optimizaciones")
 
-local FPSBoostBtn = OptimizeTab:CreateButton({
+OptimizeTab:CreateButton({
     Name = "⚡ Boost FPS",
     Callback = function()
         pcall(function()
@@ -408,7 +399,7 @@ local FPSBoostBtn = OptimizeTab:CreateButton({
     end,
 })
 
-local RejoinBtn = OptimizeTab:CreateButton({
+OptimizeTab:CreateButton({
     Name = "🔄 Rejoin",
     Callback = function()
         pcall(function() 
