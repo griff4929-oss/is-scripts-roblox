@@ -1,5 +1,5 @@
 -- =========================
--- GRIFF HUB v9 - ORION FIXED
+-- GRIFF HUB v9 - ORION CON AUTO-INICIO
 -- =========================
 
 -- Cargar Orion Library
@@ -20,16 +20,25 @@ local currentWaitTime2 = 11
 local minWaitTime = 5
 local farmTasks = {}
 
+-- Variables para los toggles UI
+local nightmareToggleUI = nil
+local crazyToggleUI = nil
+
 -- =========================
--- SISTEMA DE GUARDADO MANUAL
+-- SISTEMA DE GUARDADO
 -- =========================
 
 local SaveFolder = "GriffHub"
 local SaveFile = SaveFolder .. "/Config.json"
 
 local function saveState()
-    if not writefile then return end
-    if not isfolder(SaveFolder) then makefolder(SaveFolder) end
+    if not writefile then 
+        print("⚠️ Este ejecutor no soporta writefile")
+        return 
+    end
+    if not isfolder(SaveFolder) then 
+        pcall(function() makefolder(SaveFolder) end)
+    end
     
     local data = {
         nightmareActive = nightmareActive,
@@ -39,13 +48,19 @@ local function saveState()
         return game:GetService("HttpService"):JSONEncode(data)
     end)
     if success then
-        pcall(function() writefile(SaveFile, encoded) end)
+        pcall(function() 
+            writefile(SaveFile, encoded) 
+            print("💾 Guardado: Nightmare=" .. tostring(nightmareActive) .. ", Crazy=" .. tostring(crazyActive))
+        end)
     end
 end
 
 local function loadState()
-    if not readfile then return end
-    local success, content = pcall(function() return readfile(SaveFile) end)
+    if not readfile then return false end
+    
+    local success, content = pcall(function() 
+        return readfile(SaveFile) 
+    end)
     if success and content and content ~= "" then
         local success2, data = pcall(function()
             return game:GetService("HttpService"):JSONDecode(content)
@@ -53,11 +68,13 @@ local function loadState()
         if success2 and data then
             nightmareActive = data.nightmareActive or false
             crazyActive = data.crazyActive or false
+            print("📂 Cargado: Nightmare=" .. tostring(nightmareActive) .. ", Crazy=" .. tostring(crazyActive))
+            return true
         end
     end
+    print("📂 No hay configuración previa")
+    return false
 end
-
-loadState()
 
 -- =========================
 -- ANTI AFK
@@ -121,13 +138,26 @@ end
 -- =========================
 
 local function stopNightmare()
+    if not nightmareActive then return end
     nightmareActive = false
     saveState()
+    
     if farmTasks.nightmare then
         task.cancel(farmTasks.nightmare)
         farmTasks.nightmare = nil
     end
-    print("❌ Nightmare desactivado")
+    
+    -- Actualizar UI si existe
+    if nightmareToggleUI then
+        pcall(function() nightmareToggleUI:Set(false) end)
+    end
+    
+    print("❌ Nightmare DESACTIVADO")
+    OrionLib:MakeNotification({
+        Name = "Nightmare",
+        Content = "AutoFarm desactivado",
+        Time = 2
+    })
 end
 
 local function startNightmare()
@@ -135,7 +165,20 @@ local function startNightmare()
     nightmareActive = true
     saveState()
     
+    -- Actualizar UI si existe
+    if nightmareToggleUI then
+        pcall(function() nightmareToggleUI:Set(true) end)
+    end
+    
+    print("✅ Nightmare ACTIVADO")
+    OrionLib:MakeNotification({
+        Name = "Nightmare",
+        Content = "AutoFarm activado en Elevator16",
+        Time = 2
+    })
+    
     farmTasks.nightmare = task.spawn(function()
+        -- Enviar eventos
         local argsEnter = { [1] = "Elevator16" }
         local argsStart = { [1] = "Elevator16" }
         
@@ -151,6 +194,7 @@ local function startNightmare()
         local bunnyCFrame = CFrame.new(-25.735321, 86.0418549, -85.5302887)
         local titanCFrame = CFrame.new(-47.0388031, 90.3418045, -86.8553925)
         
+        -- VoteSkip loop
         task.spawn(function()
             while nightmareActive do
                 pcall(function() RS.Events.VoteSkip:FireServer() end)
@@ -158,6 +202,7 @@ local function startNightmare()
             end
         end)
         
+        -- Mejorar unidades loop
         task.spawn(function()
             while nightmareActive do
                 mejorarUnidad("Large Bunny TV Man")
@@ -166,6 +211,7 @@ local function startNightmare()
             end
         end)
         
+        -- Fase Bunny (60 segundos)
         currentWaitTime = 16
         local bunnyStartTime = tick()
         
@@ -186,6 +232,7 @@ local function startNightmare()
         
         if not nightmareActive then return end
         
+        -- Fase Titan (infinita)
         currentWaitTime = 16
         
         while nightmareActive do
@@ -210,19 +257,42 @@ end
 -- =========================
 
 local function stopCrazy()
+    if not crazyActive then return end
     crazyActive = false
     saveState()
+    
     if farmTasks.crazy then
         task.cancel(farmTasks.crazy)
         farmTasks.crazy = nil
     end
-    print("❌ Crazy desactivado")
+    
+    if crazyToggleUI then
+        pcall(function() crazyToggleUI:Set(false) end)
+    end
+    
+    print("❌ Crazy DESACTIVADO")
+    OrionLib:MakeNotification({
+        Name = "Crazy",
+        Content = "AutoFarm desactivado",
+        Time = 2
+    })
 end
 
 local function startCrazy()
     if crazyActive then return end
     crazyActive = true
     saveState()
+    
+    if crazyToggleUI then
+        pcall(function() crazyToggleUI:Set(true) end)
+    end
+    
+    print("✅ Crazy ACTIVADO")
+    OrionLib:MakeNotification({
+        Name = "Crazy",
+        Content = "AutoFarm activado en Elevator19",
+        Time = 2
+    })
     
     farmTasks.crazy = task.spawn(function()
         local argsEnter = { [1] = "Elevator19" }
@@ -242,11 +312,13 @@ local function startCrazy()
         local mechCFrame2 = CFrame.new(7.5827179, 88.5881958, -28.159481)
         local helicopterCFrame = CFrame.new(12.570381164550781, 85.38301086425781, -0.2645606994628906)
         
+        -- Colocar Scientists
         for i = 1, 4 do
             pcall(function() RS.Functions.SpawnTower:InvokeServer("Scientist Cameraman", scientistCFrame) end)
             task.wait(0.3)
         end
         
+        -- VoteSkip loop
         task.spawn(function()
             while crazyActive do
                 pcall(function() RS.Events.VoteSkip:FireServer() end)
@@ -254,6 +326,7 @@ local function startCrazy()
             end
         end)
         
+        -- Mejorar unidades loop
         task.spawn(function()
             while crazyActive do
                 mejorarUnidad("Large Bunny TV Man")
@@ -264,6 +337,7 @@ local function startCrazy()
             end
         end)
         
+        -- Fase Bunny (60 segundos)
         currentWaitTime2 = 11
         local bunnyStartTime = tick()
         
@@ -284,6 +358,7 @@ local function startCrazy()
         
         if not crazyActive then return end
         
+        -- Fase Mech (50 segundos)
         local mechStartTime = tick()
         
         while crazyActive and (tick() - mechStartTime) < 50 do
@@ -305,6 +380,7 @@ local function startCrazy()
         
         if not crazyActive then return end
         
+        -- Fase Helicopter (infinita)
         while crazyActive do
             local waited = 0
             while crazyActive and waited < 10 do
@@ -320,7 +396,7 @@ local function startCrazy()
 end
 
 -- =========================
--- CREAR INTERFAZ CON ORION (CON TOGGLES FIXEADOS)
+-- CREAR INTERFAZ CON ORION
 -- =========================
 
 local Window = OrionLib:MakeWindow({
@@ -343,12 +419,10 @@ FarmTab:AddSection({
     Name = "🌙 Nightmare"
 })
 
--- Toggle con fix para Orion
-local nightmareToggle = FarmTab:AddToggle({
+nightmareToggleUI = FarmTab:AddToggle({
     Name = "Activar Nightmare",
     Default = nightmareActive,
     Callback = function(Value)
-        -- Forzar ejecución con task.spawn para evitar bugs de Orion
         task.spawn(function()
             if Value then
                 startNightmare()
@@ -364,7 +438,7 @@ FarmTab:AddSection({
     Name = "🌀 Crazy"
 })
 
-local crazyToggle = FarmTab:AddToggle({
+crazyToggleUI = FarmTab:AddToggle({
     Name = "Activar Crazy",
     Default = crazyActive,
     Callback = function(Value)
@@ -425,12 +499,32 @@ OptimizeTab:AddButton({
     end
 })
 
+-- =========================
+-- AUTO-INICIO (cargar estado guardado)
+-- =========================
+
+-- Cargar estado guardado
+local hasSavedData = loadState()
+
+-- Si había datos guardados, auto-iniciar los farms
+task.wait(2) -- Esperar a que la UI cargue
+
+if nightmareActive then
+    print("🔄 Auto-iniciando Nightmare...")
+    startNightmare()
+end
+
+if crazyActive then
+    print("🔄 Auto-iniciando Crazy...")
+    startCrazy()
+end
+
 -- Notificación de inicio
 OrionLib:MakeNotification({
     Name = "Griff Hub v9",
-    Content = "¡Interfaz cargada! Los toggles ahora funcionan correctamente.",
+    Content = "¡AutoFarm cargado! Los toggles guardan su estado.",
     Image = "rbxassetid://4483345998",
     Time = 5
 })
 
-print("✅ Griff Hub v9 - Versión con toggles fixeados")
+print("✅ Griff Hub v9 - Los toggles ahora guardan estado y auto-inician")
