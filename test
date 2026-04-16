@@ -1,5 +1,5 @@
 -- =========================
--- GRIFF HUB v9 - ORION EDITION CON GUARDADO MANUAL
+-- GRIFF HUB v9 - ORION FIXED
 -- =========================
 
 -- Cargar Orion Library
@@ -27,18 +27,9 @@ local farmTasks = {}
 local SaveFolder = "GriffHub"
 local SaveFile = SaveFolder .. "/Config.json"
 
--- Crear carpeta si no existe
-if not isfolder then
-    print("⚠️ Este ejecutor no soporta writefile, los ajustes no se guardarán")
-else
-    if not isfolder(SaveFolder) then
-        makefolder(SaveFolder)
-    end
-end
-
--- Guardar estado
 local function saveState()
     if not writefile then return end
+    if not isfolder(SaveFolder) then makefolder(SaveFolder) end
     
     local data = {
         nightmareActive = nightmareActive,
@@ -48,20 +39,14 @@ local function saveState()
         return game:GetService("HttpService"):JSONEncode(data)
     end)
     if success then
-        pcall(function()
-            writefile(SaveFile, encoded)
-        end)
+        pcall(function() writefile(SaveFile, encoded) end)
     end
 end
 
--- Cargar estado
 local function loadState()
     if not readfile then return end
-    
-    local success, content = pcall(function()
-        return readfile(SaveFile)
-    end)
-    if success and content then
+    local success, content = pcall(function() return readfile(SaveFile) end)
+    if success and content and content ~= "" then
         local success2, data = pcall(function()
             return game:GetService("HttpService"):JSONDecode(content)
         end)
@@ -72,7 +57,6 @@ local function loadState()
     end
 end
 
--- Cargar estado al iniciar
 loadState()
 
 -- =========================
@@ -143,6 +127,7 @@ local function stopNightmare()
         task.cancel(farmTasks.nightmare)
         farmTasks.nightmare = nil
     end
+    print("❌ Nightmare desactivado")
 end
 
 local function startNightmare()
@@ -231,6 +216,7 @@ local function stopCrazy()
         task.cancel(farmTasks.crazy)
         farmTasks.crazy = nil
     end
+    print("❌ Crazy desactivado")
 end
 
 local function startCrazy()
@@ -334,13 +320,13 @@ local function startCrazy()
 end
 
 -- =========================
--- CREAR INTERFAZ CON ORION
+-- CREAR INTERFAZ CON ORION (CON TOGGLES FIXEADOS)
 -- =========================
 
 local Window = OrionLib:MakeWindow({
     Name = "🥚 Griff Hub v9",
     HidePremium = false,
-    SaveConfig = false,  -- Desactivamos el guardado de Orion
+    SaveConfig = false,
     ConfigFolder = "GriffHub",
     IntroEnabled = false
 })
@@ -357,15 +343,19 @@ FarmTab:AddSection({
     Name = "🌙 Nightmare"
 })
 
-FarmTab:AddToggle({
+-- Toggle con fix para Orion
+local nightmareToggle = FarmTab:AddToggle({
     Name = "Activar Nightmare",
     Default = nightmareActive,
     Callback = function(Value)
-        if Value then
-            startNightmare()
-        else
-            stopNightmare()
-        end
+        -- Forzar ejecución con task.spawn para evitar bugs de Orion
+        task.spawn(function()
+            if Value then
+                startNightmare()
+            else
+                stopNightmare()
+            end
+        end)
     end
 })
 
@@ -374,15 +364,17 @@ FarmTab:AddSection({
     Name = "🌀 Crazy"
 })
 
-FarmTab:AddToggle({
+local crazyToggle = FarmTab:AddToggle({
     Name = "Activar Crazy",
     Default = crazyActive,
     Callback = function(Value)
-        if Value then
-            startCrazy()
-        else
-            stopCrazy()
-        end
+        task.spawn(function()
+            if Value then
+                startCrazy()
+            else
+                stopCrazy()
+            end
+        end)
     end
 })
 
@@ -400,41 +392,45 @@ OptimizeTab:AddSection({
 OptimizeTab:AddButton({
     Name = "⚡ Boost FPS",
     Callback = function()
-        pcall(function()
-            Lighting.GlobalShadows = false
-            Lighting.FogEnd = 1e10
-            Lighting.Brightness = 1
-            settings().Rendering.QualityLevel = 1
+        task.spawn(function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 1e10
+                Lighting.Brightness = 1
+                settings().Rendering.QualityLevel = 1
+            end)
+            OrionLib:MakeNotification({
+                Name = "FPS Boost",
+                Content = "Configuración gráfica optimizada",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
         end)
-        OrionLib:MakeNotification({
-            Name = "FPS Boost",
-            Content = "Configuración gráfica optimizada",
-            Image = "rbxassetid://4483345998",
-            Time = 3
-        })
     end
 })
 
 OptimizeTab:AddButton({
     Name = "🔄 Rejoin",
     Callback = function()
-        OrionLib:MakeNotification({
-            Name = "Rejoin",
-            Content = "Reconectando al juego...",
-            Image = "rbxassetid://4483345998",
-            Time = 2
-        })
-        task.wait(1)
-        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+        task.spawn(function()
+            OrionLib:MakeNotification({
+                Name = "Rejoin",
+                Content = "Reconectando al juego...",
+                Image = "rbxassetid://4483345998",
+                Time = 2
+            })
+            task.wait(1)
+            game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+        end)
     end
 })
 
 -- Notificación de inicio
 OrionLib:MakeNotification({
     Name = "Griff Hub v9",
-    Content = "¡Interfaz cargada correctamente! (Guardado manual activado)",
+    Content = "¡Interfaz cargada! Los toggles ahora funcionan correctamente.",
     Image = "rbxassetid://4483345998",
     Time = 5
 })
 
-print("✅ Griff Hub v9 cargado - Guardado manual activado")
+print("✅ Griff Hub v9 - Versión con toggles fixeados")
