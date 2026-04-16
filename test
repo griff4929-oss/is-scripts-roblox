@@ -1,418 +1,59 @@
--- =========================
--- GRIFF HUB v9 - RAYFIELD EDITION
--- =========================
+-- Cargar Amethyst UI
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/J0se-j/My-Lua-Library/refs/heads/main/Booting-the-library.lua"))()
 
--- Cargar Rayfield y esperar a que cargue
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
-
--- Esperar a que Rayfield esté listo
-while not Rayfield or not Rayfield:Loaded() do
-    task.wait()
-end
-
--- Servicios
-local RS = game:GetService("ReplicatedStorage")
-local WS = game:GetService("Workspace")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Lighting = game:GetService("Lighting")
-
--- Variables Globales
-local nightmareActive = false
-local crazyActive = false
-local currentWaitTime = 16
-local currentWaitTime2 = 11
-local minWaitTime = 5
-local farmTasks = {}
-
--- =========================
--- ANTI AFK
--- =========================
-local vu = game:GetService("VirtualUser")
-game:GetService("Players").LocalPlayer.Idled:Connect(function()
-    vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-    task.wait(1)
-    vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-end)
-
--- =========================
--- BLOQUEAR NOTIFICACIONES DE ERROR
--- =========================
-local TextEvent = RS:FindFirstChild("Events") and RS.Events:FindFirstChild("TextEvent")
-
-local function blockAllErrorNotifications()
-    if not TextEvent then return end
-    
-    local success, connections = pcall(function()
-        return getconnections(TextEvent.OnClientEvent)
-    end)
-    
-    if success and connections then
-        for _, conn in ipairs(connections) do
-            pcall(function() conn:Disable() end)
-        end
-    end
-    
-    local oldEvent = TextEvent.OnClientEvent
-    TextEvent.OnClientEvent = Instance.new("BindableEvent").Event
-    
-    TextEvent.OnClientEvent:Connect(function(typ, text)
-        if typ == "Error" then
-            return
-        end
-        if oldEvent then
-            oldEvent(typ, text)
-        end
-    end)
-end
-
-pcall(blockAllErrorNotifications)
-
--- =========================
--- FUNCIONES DE AUTOFARM
--- =========================
-
-local function mejorarUnidad(nombreUnidad)
-    local functions = RS:FindFirstChild("Functions")
-    local spawnTower = functions and functions:FindFirstChild("SpawnTower")
-    if not spawnTower then return end
-    
-    local towers = WS:FindFirstChild("Towers")
-    if not towers then return end
-    
-    for _, torre in pairs(towers:GetChildren()) do
-        local config = torre:FindFirstChild("Config")
-        if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
-            local nombre = config:FindFirstChild("TowerName")
-            local upgrade = config:FindFirstChild("Upgrade")
-            if nombre and nombre.Value == nombreUnidad and upgrade and upgrade.Value then
-                pcall(function()
-                    spawnTower:InvokeServer(upgrade.Value.Name, torre.PrimaryPart.CFrame, torre)
-                end)
-            end
-        end
-    end
-end
-
-local function venderTodosLosBunnies()
-    local sellTower = RS.Events:FindFirstChild("SellTower") or RS.Functions:FindFirstChild("SellTower")
-    if not sellTower then return 0 end
-    
-    local towers = WS:FindFirstChild("Towers")
-    if not towers then return 0 end
-    
-    local vendidos = 0
-    for _, tower in pairs(towers:GetChildren()) do
-        local config = tower:FindFirstChild("Config")
-        if config and config:FindFirstChild("Owner") and config.Owner.Value == LocalPlayer.Name then
-            local tName = config:FindFirstChild("TowerName")
-            if tName and (tName.Value == "Large Bunny TV Man" or tName.Value == "Bunny TV Man") then
-                pcall(function() sellTower:InvokeServer(tower) end)
-                vendidos = vendidos + 1
-            end
-        end
-    end
-    return vendidos
-end
-
--- =========================
--- NIGHTMARE
--- =========================
-
-local function stopNightmare()
-    nightmareActive = false
-    if farmTasks.nightmare then
-        task.cancel(farmTasks.nightmare)
-        farmTasks.nightmare = nil
-    end
-end
-
-local function startNightmare()
-    if nightmareActive then return end
-    nightmareActive = true
-    
-    farmTasks.nightmare = task.spawn(function()
-        local argsEnter = { [1] = "Elevator16" }
-        local argsStart = { [1] = "Elevator16" }
-        
-        pcall(function() 
-            RS.Events.EnterElevator:FireServer(unpack(argsEnter))
-        end)
-        pcall(function() 
-            RS.Events.StartElevator:FireServer(unpack(argsStart))
-        end)
-        
-        if not nightmareActive then return end
-        
-        local bunnyCFrame = CFrame.new(-25.735321, 86.0418549, -85.5302887, 1, 0, 0, 0, 1, 0, 0, 0, 1)
-        local titanCFrame = CFrame.new(-47.0388031, 90.3418045, -86.8553925, 1, 0, 0, 0, 1, 0, 0, 0, 1)
-        
-        task.spawn(function()
-            while nightmareActive do
-                pcall(function() RS.Events.VoteSkip:FireServer() end)
-                task.wait(0.05)
-            end
-        end)
-        
-        task.spawn(function()
-            while nightmareActive do
-                mejorarUnidad("Large Bunny TV Man")
-                mejorarUnidad("Upgraded Titan Cameraman")
-                task.wait(0.3)
-            end
-        end)
-        
-        currentWaitTime = 16
-        local bunnyStartTime = tick()
-        local bunnyCount = 0
-        
-        while nightmareActive and (tick() - bunnyStartTime) < 60 do
-            local waited = 0
-            while nightmareActive and waited < currentWaitTime and (tick() - bunnyStartTime) < 60 do
-                task.wait(1)
-                waited = waited + 1
-            end
-            
-            if nightmareActive and (tick() - bunnyStartTime) < 60 then
-                pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame) end)
-                bunnyCount = bunnyCount + 1
-                if currentWaitTime > minWaitTime then
-                    currentWaitTime = math.max(minWaitTime, currentWaitTime - 1)
-                end
-            end
-        end
-        
-        if not nightmareActive then return end
-        
-        currentWaitTime = 16
-        local titanCount = 0
-        
-        while nightmareActive do
-            local waited = 0
-            while nightmareActive and waited < currentWaitTime do
-                task.wait(1)
-                waited = waited + 1
-            end
-            
-            if nightmareActive then
-                pcall(function() RS.Functions.SpawnTower:InvokeServer("Upgraded Titan Cameraman", titanCFrame) end)
-                titanCount = titanCount + 1
-                if currentWaitTime > minWaitTime then
-                    currentWaitTime = math.max(minWaitTime, currentWaitTime - 1)
-                end
-            end
-        end
-    end)
-end
-
--- =========================
--- CRAZY
--- =========================
-
-local function stopCrazy()
-    crazyActive = false
-    if farmTasks.crazy then
-        task.cancel(farmTasks.crazy)
-        farmTasks.crazy = nil
-    end
-end
-
-local function startCrazy()
-    if crazyActive then return end
-    crazyActive = true
-    
-    farmTasks.crazy = task.spawn(function()
-        local argsEnter = { [1] = "Elevator19" }
-        local argsStart = { [1] = "Elevator19" }
-        
-        pcall(function() 
-            RS.Events.EnterElevator:FireServer(unpack(argsEnter))
-        end)
-        pcall(function() 
-            RS.Events.StartElevator:FireServer(unpack(argsStart))
-        end)
-        
-        if not crazyActive then return end
-        
-        local scientistCFrame = CFrame.new(41.5543137, 82.593399, -44.0053787, 1, 0, 0, 0, 1, 0, 0, 0, 1)
-        local bunnyCFrame2 = CFrame.new(29.8349686, 84.2882462, -17.7190742, 1, 0, 0, 0, 1, 0, 0, 0, 1)
-        local mechCFrame2 = CFrame.new(7.5827179, 88.5881958, -28.159481, 1, 0, 0, 0, 1, 0, 0, 0, 1)
-        local helicopterCFrame = CFrame.new(12.570381164550781, 85.38301086425781, -0.2645606994628906, -4.371138828673793e-08, 0, 1, 0, 1, 0, -1, 0, -4.371138828673793e-08)
-        
-        for i = 1, 4 do
-            pcall(function() RS.Functions.SpawnTower:InvokeServer("Scientist Cameraman", scientistCFrame) end)
-            task.wait(0.3)
-        end
-        
-        task.spawn(function()
-            while crazyActive do
-                pcall(function() RS.Events.VoteSkip:FireServer() end)
-                task.wait(0.05)
-            end
-        end)
-        
-        task.spawn(function()
-            while crazyActive do
-                mejorarUnidad("Large Bunny TV Man")
-                mejorarUnidad("Scientist Cameraman")
-                mejorarUnidad("Mech Cameraman")
-                mejorarUnidad("Large Speaker Helicopter")
-                task.wait(0.3)
-            end
-        end)
-        
-        currentWaitTime2 = 11
-        local bunnyStartTime = tick()
-        local bunnyCount = 0
-        
-        while crazyActive and (tick() - bunnyStartTime) < 60 do
-            local waited = 0
-            while crazyActive and waited < currentWaitTime2 and (tick() - bunnyStartTime) < 60 do
-                task.wait(1)
-                waited = waited + 1
-            end
-            
-            if crazyActive and (tick() - bunnyStartTime) < 60 then
-                pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Bunny TV Man", bunnyCFrame2) end)
-                bunnyCount = bunnyCount + 1
-                if currentWaitTime2 > minWaitTime then
-                    currentWaitTime2 = math.max(minWaitTime, currentWaitTime2 - 1)
-                end
-            end
-        end
-        
-        if not crazyActive then return end
-        
-        local mechStartTime = tick()
-        local mechCount = 0
-        
-        while crazyActive and (tick() - mechStartTime) < 50 do
-            local waited = 0
-            while crazyActive and waited < 3 and (tick() - mechStartTime) < 50 do
-                task.wait(1)
-                waited = waited + 1
-            end
-            
-            if crazyActive and (tick() - mechStartTime) < 50 then
-                pcall(function() RS.Functions.SpawnTower:InvokeServer("Mech Cameraman", mechCFrame2) end)
-                mechCount = mechCount + 1
-            end
-        end
-        
-        if not crazyActive then return end
-        
-        venderTodosLosBunnies()
-        task.wait(1)
-        
-        if not crazyActive then return end
-        
-        local helicopterCount = 0
-        
-        while crazyActive do
-            local waited = 0
-            while crazyActive and waited < 10 do
-                task.wait(1)
-                waited = waited + 1
-            end
-            
-            if crazyActive then
-                pcall(function() RS.Functions.SpawnTower:InvokeServer("Large Speaker Helicopter", helicopterCFrame) end)
-                helicopterCount = helicopterCount + 1
-            end
-        end
-    end)
-end
-
--- =========================
--- CREAR INTERFAZ CON RAYFIELD
--- =========================
-
-local Window = Rayfield:CreateWindow({
-    Name = "🥚 Griff Hub v9",
-    Icon = 0,
+local Window = Library:CreateWindow({
+    Name = "Griff Hub v9",
     LoadingTitle = "Griff Hub",
     LoadingSubtitle = "Nightmare + Crazy",
-    Theme = "Default",
+    ToggleUIKeybind = Enum.KeyCode.K,
     ConfigurationSaving = {
         Enabled = true,
         FolderName = "GriffHub",
-        FileName = "GriffHub_Settings"
-    },
-    Keybind = Enum.KeyCode.K,
-    SaveSettings = true
+        FileName = "UserSettings"
+    }
 })
 
--- Pestaña principal
-local MainTab = Window:CreateTab("🌾 AutoFarm", 0)
+local MainTab = Window:CreateTab("🌾 AutoFarm", 4483362458)
+local NightmareSection = MainTab:CreateSection("🌙 Nightmare")
 
--- SECCIÓN NIGHTMARE
-MainTab:CreateSection("🌙 Nightmare")
-
-MainTab:CreateToggle({
+NightmareSection:CreateToggle({
     Name = "Activar Nightmare",
-    CurrentValue = false,
-    Flag = "NightmareToggle",
     Callback = function(Value)
         if Value then
             startNightmare()
         else
             stopNightmare()
         end
-    end,
+    end
 })
 
--- SECCIÓN CRAZY
-MainTab:CreateSection("🌀 Crazy")
-
-MainTab:CreateToggle({
+local CrazySection = MainTab:CreateSection("🌀 Crazy")
+CrazySection:CreateToggle({
     Name = "Activar Crazy",
-    CurrentValue = false,
-    Flag = "CrazyToggle",
     Callback = function(Value)
         if Value then
             startCrazy()
         else
             stopCrazy()
         end
-    end,
+    end
 })
 
 -- Pestaña de Optimización
 local OptimizeTab = Window:CreateTab("⚡ Optimizar", 0)
+local OptSection = OptimizeTab:CreateSection("Optimizaciones")
 
-OptimizeTab:CreateSection("Optimizaciones")
-
-OptimizeTab:CreateButton({
+OptSection:CreateButton({
     Name = "⚡ Boost FPS",
     Callback = function()
-        pcall(function()
-            Lighting.GlobalShadows = false
-            Lighting.FogEnd = 1e10
-            Lighting.Brightness = 1
-            settings().Rendering.QualityLevel = 1
-        end)
-        Rayfield:Notify({
-            Title = "FPS Boost",
-            Content = "Configuración gráfica optimizada",
-            Duration = 3,
-        })
-    end,
+        -- tu código de boost FPS aquí
+        Library:Notify("FPS Boost aplicado")
+    end
 })
 
-OptimizeTab:CreateButton({
+OptSection:CreateButton({
     Name = "🔄 Rejoin",
     Callback = function()
-        pcall(function() 
-            game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
-        end)
-    end,
+        game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+    end
 })
-
--- Notificación de inicio
-Rayfield:Notify({
-    Title = "Griff Hub v9",
-    Content = "¡Interfaz cargada correctamente!",
-    Duration = 5,
-})
-
-print("✅ Griff Hub v9 cargado con Rayfield - Nightmare + Crazy")
